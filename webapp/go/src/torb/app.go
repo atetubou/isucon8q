@@ -369,9 +369,7 @@ func main() {
 
 		go func() {
 			time.Sleep(time.Second * 5)
-			if err := pprof.StopCPUProfile(); err != nil {
-				log.Fatal("could not end CPU profile:", err)
-			}
+			pprof.StopCPUProfile()
 			log.Println("no error")
 		}()
 
