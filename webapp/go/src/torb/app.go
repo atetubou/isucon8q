@@ -643,6 +643,9 @@ func getEventHandler(c echo.Context) error {
 	}
 	return c.JSON(200, sanitizeEvent(event))
 }
+
+var sheetMu = make([]sync.Mutex, 1100)
+
 func postReserveHandler(c echo.Context) error {
 	eventID, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
@@ -675,6 +678,7 @@ func postReserveHandler(c echo.Context) error {
 
 	var sheet Sheet
 	var reservationID int64
+
 	for {
 		tx, err := db.Begin()
 		if err := tx.QueryRow("SELECT * FROM sheets WHERE id NOT IN (SELECT sheet_id FROM reservations WHERE event_id = ? AND canceled_at IS NULL FOR UPDATE) AND `rank` = ? ORDER BY RAND() LIMIT 1", event.ID, params.Rank).Scan(&sheet.ID, &sheet.Rank, &sheet.Num, &sheet.Price); err != nil {
@@ -686,17 +690,21 @@ func postReserveHandler(c echo.Context) error {
 			continue
 		}
 
+		sheetMu[sheet.ID].Lock()
+
 		t := time.Now()
 		res, err := tx.Exec("INSERT INTO reservations (event_id, sheet_id, user_id, reserved_at) VALUES (?, ?, ?, ?)", event.ID, sheet.ID, user.ID, t.UTC().Format("2006-01-02 15:04:05.000000"))
 		if err != nil {
 			tx.Rollback()
 			log.Println("re-try: rollback by", err)
+			sheetMu[sheet.ID].Unlock()
 			continue
 		}
 		reservationID, err = res.LastInsertId()
 		if err != nil {
 			tx.Rollback()
 			log.Println("re-try: rollback by", err)
+			sheetMu[sheet.ID].Unlock()
 			continue
 		}
 
@@ -704,8 +712,10 @@ func postReserveHandler(c echo.Context) error {
 		if err := tx.Commit(); err != nil {
 			tx.Rollback()
 			log.Println("re-try: rollback by", err)
+			sheetMu[sheet.ID].Unlock()
 			continue
 		}
+		sheetMu[sheet.ID].Unlock()
 		break
 	}
 	return c.JSON(202, echo.Map{
@@ -742,6 +752,7 @@ func deleteReservationHandler(c echo.Context) error {
 	}
 
 	var sheet Sheet
+
 	if err := db.QueryRow("SELECT * FROM sheets WHERE `rank` = ? AND num = ?", rank, num).Scan(&sheet.ID, &sheet.Rank, &sheet.Num, &sheet.Price); err != nil {
 		if err == sql.ErrNoRows {
 			return resError(c, "invalid_sheet", 404)
@@ -750,6 +761,8 @@ func deleteReservationHandler(c echo.Context) error {
 		return err
 	}
 
+	sheetMu[sheet.ID].Lock()
+	defer sheetMu[sheet.ID].Unlock()
 	for {
 		tx, err := db.Begin()
 		if err != nil {
