@@ -1,14 +1,15 @@
 import sys
 import mysql.connector
 import subprocess
+import os
 
 conn = None
 def init():
     global conn
     conn = mysql.connector.connect(
-            host = 'localhost',
-            user = 'isucon',
-            password = 'isucon',
+            host = os.environ.get('DB_HOST'),
+            user = os.environ.get('DB_USER'),
+            password = os.environ.get('DB_PASS'),
             db = 'profile'
             )
     pass
