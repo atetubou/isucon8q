@@ -10,6 +10,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"runtime/pprof"
 	"os/exec"
 	"sort"
 	"strconv"
@@ -357,6 +358,19 @@ func main() {
 		if err != nil {
 			return nil
 		}
+
+		f, err := os.Create("/tmp/cpuprofile")
+		if err != nil {
+			log.Fatal(err)
+		}
+		if err := pprof.StartCPUProfile(f); err != nil {
+			log.Print("could not start CPU profile: ", err)
+		}
+
+		go func() {
+			time.Sleep(time.Second * 70)
+			defer pprof.StopCPUProfile()
+		}()
 
 		return c.NoContent(204)
 	})
