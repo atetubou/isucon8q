@@ -764,14 +764,9 @@ func deleteReservationHandler(c echo.Context) error {
 	sheetMu[sheet.ID].Lock()
 	defer sheetMu[sheet.ID].Unlock()
 	for {
-		tx, err := db.Begin()
-		if err != nil {
-			return err
-		}
 
 		var reservation Reservation
-		if err := tx.QueryRow("SELECT * FROM reservations WHERE event_id = ? AND sheet_id = ? AND canceled_at IS NULL GROUP BY event_id HAVING reserved_at = MIN(reserved_at) FOR UPDATE", event.ID, sheet.ID).Scan(&reservation.ID, &reservation.EventID, &reservation.SheetID, &reservation.UserID, &reservation.ReservedAt, &reservation.CanceledAt); err != nil {
-			tx.Rollback()
+		if err := db.QueryRow("SELECT * FROM reservations WHERE event_id = ? AND sheet_id = ? AND canceled_at IS NULL GROUP BY event_id HAVING reserved_at = MIN(reserved_at) FOR UPDATE", event.ID, sheet.ID).Scan(&reservation.ID, &reservation.EventID, &reservation.SheetID, &reservation.UserID, &reservation.ReservedAt, &reservation.CanceledAt); err != nil {
 			if err == sql.ErrNoRows {
 				return resError(c, "not_reserved", 400)
 			}
@@ -785,21 +780,15 @@ func deleteReservationHandler(c echo.Context) error {
 			if reservation == nil || reservation.UserID != user.ID {
 				return resError(c, "not_reserved", 400)
 			}
-			tx.Rollback()
 			return resError(c, "not_permitted", 403)
 		}
 
-		if _, err := tx.Exec("UPDATE reservations SET canceled_at = ? WHERE id = ?", time.Now().UTC().Format("2006-01-02 15:04:05.000000"), reservation.ID); err != nil {
-			tx.Rollback()
-			log.Println("[update(delete)] re-try: rollback by", err)
+		if _, err := db.Exec("UPDATE reservations SET canceled_at = ? WHERE id = ?", time.Now().UTC().Format("2006-01-02 15:04:05.000000"), reservation.ID); err != nil {
+			log.Println("update", err)
 			continue
 		}
 
 		eventSheetCache.Delete(reservation.EventID, reservation.SheetID)
-		if err := tx.Commit(); err != nil {
-			log.Println("[commit(delete)] re-try: rollback by", err)
-			continue
-		}
 		break
 	}
 
