@@ -371,9 +371,12 @@ func getIndexHandler(c echo.Context) error {
 }
 
 var allSheets []Sheet
+var idexSheets []Sheet
 
 func mainInit() {
 	allSheets = []Sheet{}
+	idexSheets = make([]Sheet, 1100)
+
 	rows, err := db.Query("SELECT * FROM sheets ORDER BY `rank`, num")
 	if err != nil {
 		log.Fatal("db.Query", err)
@@ -383,6 +386,7 @@ func mainInit() {
 		if err := rows.Scan(&sheet.ID, &sheet.Rank, &sheet.Num, &sheet.Price); err != nil {
 			log.Fatal("rows.Scane:", err)
 		}
+		idexSheets[sheet.ID] = sheet
 		allSheets = append(allSheets, sheet)
 	}
 	log.Print(len(allSheets))
@@ -991,7 +995,7 @@ func getAdminReportsEventHandler(c echo.Context) error {
 }
 
 func getAdminReportsHandler(c echo.Context) error {
-	rows, err := db.Query("select r.*, s.rank as sheet_rank, s.num as sheet_num, s.price as sheet_price, e.id as event_id, e.price as event_price from reservations r inner join sheets s on s.id = r.sheet_id inner join events e on e.id = r.event_id order by reserved_at asc for update")
+	rows, err := db.Query("select r.*, e.id as event_id, e.price as event_price from reservations r inner join events e on e.id = r.event_id order by reserved_at asc for update")
 	if err != nil {
 		return err
 	}
@@ -1000,11 +1004,11 @@ func getAdminReportsHandler(c echo.Context) error {
 	var reports []Report
 	for rows.Next() {
 		var reservation Reservation
-		var sheet Sheet
 		var event Event
-		if err := rows.Scan(&reservation.ID, &reservation.EventID, &reservation.SheetID, &reservation.UserID, &reservation.ReservedAt, &reservation.CanceledAt, &sheet.Rank, &sheet.Num, &sheet.Price, &event.ID, &event.Price); err != nil {
+		if err := rows.Scan(&reservation.ID, &reservation.EventID, &reservation.SheetID, &reservation.UserID, &reservation.ReservedAt, &reservation.CanceledAt, &event.ID, &event.Price); err != nil {
 			return err
 		}
+		sheet := idexSheets[reservation.SheetID]
 		report := Report{
 			ReservationID: reservation.ID,
 			EventID:       event.ID,
