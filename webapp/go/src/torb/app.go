@@ -403,7 +403,10 @@ func getInitializeHandler(c echo.Context) error {
 		if err := rows.Scan(&reservation.ID, &reservation.EventID, &reservation.SheetID, &reservation.UserID, &reservation.ReservedAt, &reservation.CanceledAt); err != nil {
 			log.Fatal(err)
 		}
-		eventSheetCache.Set(reservation.EventID, reservation.SheetID, EventSheetReservation{ reservation.UserID, *(reservation.ReservedAt)} )
+
+		if reservation.CacneledAt == nil {
+			eventSheetCache.Set(reservation.EventID, reservation.SheetID, EventSheetReservation{ reservation.UserID, *(reservation.ReservedAt)} )
+		}
 	}
 	
 	return c.NoContent(204)
