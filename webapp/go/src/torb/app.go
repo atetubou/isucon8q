@@ -356,7 +356,7 @@ func main() {
 		cmd.Stdout = os.Stdout
 		err := cmd.Run()
 		if err != nil {
-			return nil
+			log.Fatal(err)
 		}
 
 		f, err := os.Create("/tmp/cpuprofile")
