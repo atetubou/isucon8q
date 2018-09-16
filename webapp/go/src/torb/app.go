@@ -738,34 +738,43 @@ func deleteReservationHandler(c echo.Context) error {
 		if err == sql.ErrNoRows {
 			return resError(c, "invalid_sheet", 404)
 		}
+		log.Println("we shouldn't reach here...", err)
 		return err
 	}
 
-	tx, err := db.Begin()
-	if err != nil {
-		return err
-	}
-
-	var reservation Reservation
-	if err := tx.QueryRow("SELECT * FROM reservations WHERE event_id = ? AND sheet_id = ? AND canceled_at IS NULL GROUP BY event_id HAVING reserved_at = MIN(reserved_at) FOR UPDATE", event.ID, sheet.ID).Scan(&reservation.ID, &reservation.EventID, &reservation.SheetID, &reservation.UserID, &reservation.ReservedAt, &reservation.CanceledAt); err != nil {
-		tx.Rollback()
-		if err == sql.ErrNoRows {
-			return resError(c, "not_reserved", 400)
+	for {
+		tx, err := db.Begin()
+		if err != nil {
+			return err
 		}
-		return err
-	}
-	if reservation.UserID != user.ID {
-		tx.Rollback()
-		return resError(c, "not_permitted", 403)
-	}
 
-	if _, err := tx.Exec("UPDATE reservations SET canceled_at = ? WHERE id = ?", time.Now().UTC().Format("2006-01-02 15:04:05.000000"), reservation.ID); err != nil {
-		tx.Rollback()
-		return err
-	}
-	eventSheetCache.Delete(reservation.EventID, reservation.SheetID)
-	if err := tx.Commit(); err != nil {
-		return err
+		var reservation Reservation
+		if err := tx.QueryRow("SELECT * FROM reservations WHERE event_id = ? AND sheet_id = ? AND canceled_at IS NULL GROUP BY event_id HAVING reserved_at = MIN(reserved_at) FOR UPDATE", event.ID, sheet.ID).Scan(&reservation.ID, &reservation.EventID, &reservation.SheetID, &reservation.UserID, &reservation.ReservedAt, &reservation.CanceledAt); err != nil {
+			tx.Rollback()
+			if err == sql.ErrNoRows {
+				return resError(c, "not_reserved", 400)
+			}
+			log.Println("re-try: rollback by", err)
+			continue
+		}
+
+		if reservation.UserID != user.ID {
+			tx.Rollback()
+			return resError(c, "not_permitted", 403)
+		}
+
+		if _, err := tx.Exec("UPDATE reservations SET canceled_at = ? WHERE id = ?", time.Now().UTC().Format("2006-01-02 15:04:05.000000"), reservation.ID); err != nil {
+			tx.Rollback()
+			log.Println("re-try: rollback by", err)
+			continue
+		}
+
+		eventSheetCache.Delete(reservation.EventID, reservation.SheetID)
+		if err := tx.Commit(); err != nil {
+			return err
+			log.Println("re-try: rollback by", err)
+			continue
+		}
 	}
 
 	return c.NoContent(204)
