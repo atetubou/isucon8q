@@ -291,6 +291,7 @@ func getEvent(eventID, loginUserID int64) (*Event, error) {
 	}
 
 	for _, sheet := range allSheets {
+		sheet := sheet
 		var rankSheet *Sheets = event.Sheets[sheet.Rank]
 		rankSheet.Price = event.Price + sheet.Price
 		event.Total++
@@ -766,7 +767,7 @@ func deleteReservationHandler(c echo.Context) error {
 		}
 
 		if reservation.UserID != user.ID {
-			// It's possible that the DB is overwritten after we read a researvation from the cache.
+			// It's possible that the DB is overwritten after we read a researvation from the cache. 
 			reservation := eventSheetCache.Get(event.ID, sheet.ID)
 			if reservation == nil || reservation.UserID != user.ID {
 				return resError(c, "not_reserved", 400)
