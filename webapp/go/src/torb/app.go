@@ -371,7 +371,7 @@ func getInitializeHandler(c echo.Context) error {
 		log.Print(err)
 	}
 
-	allSheets = nil
+	allSheets = []Sheet{}
 	rows, err := db.Query("SELECT * FROM sheets ORDER BY `rank`, num")
 	if err != nil {
 		log.Fatal("db.Query", err)
