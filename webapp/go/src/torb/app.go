@@ -998,6 +998,7 @@ func getAdminReportsEventHandler(c echo.Context) error {
 func getAdminReportsHandler(c echo.Context) error {
 	rows, err := db.Query("select r.*, s.rank as sheet_rank, s.num as sheet_num, s.price as sheet_price, e.id as event_id, e.price as event_price from reservations r inner join sheets s on s.id = r.sheet_id inner join events e on e.id = r.event_id order by reserved_at asc for update")
 	if err != nil {
+		log.Print("query (/admin/api/reports/): ", err)
 		return err
 	}
 	defer rows.Close()
@@ -1008,6 +1009,7 @@ func getAdminReportsHandler(c echo.Context) error {
 		var sheet Sheet
 		var event Event
 		if err := rows.Scan(&reservation.ID, &reservation.EventID, &reservation.SheetID, &reservation.UserID, &reservation.ReservedAt, &reservation.CanceledAt, &sheet.Rank, &sheet.Num, &sheet.Price, &event.ID, &event.Price); err != nil {
+			log.Print("scan (/admin/api/reports/): ", err)
 			return err
 		}
 		report := Report{
@@ -1118,6 +1120,9 @@ func renderReportCSV(c echo.Context, reports []Report) error {
 	c.Response().Header().Set("Content-Type", `text/csv; charset=UTF-8`)
 	c.Response().Header().Set("Content-Disposition", `attachment; filename="report.csv"`)
 	_, err := io.Copy(c.Response(), body)
+	if err != nil {
+		log.Print("render report csv:", err)
+	}
 	return err
 }
 
