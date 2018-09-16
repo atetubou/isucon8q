@@ -21,7 +21,7 @@ do
 	# echo $pub
 	sshpass -p $1 ssh-copy-id -f -i $pub -o "StrictHostKeyChecking no" $hostname
     done
-    ssh ${hostname} mkdir -p ~/.ssh 
-    scp isucon_rsa ${hostname}:~/.ssh/id_rsa
-    scp isucon_rsa.pub ${hostname}:~/.ssh/id_rsa.pub
+    ssh ${hostname} mkdir -p /home/isucon/.ssh
+    scp isucon_rsa ${hostname}:/home/isucon/.ssh/id_rsa
+    scp isucon_rsa.pub ${hostname}:/home/isucon/.ssh/id_rsa.pub
 done
