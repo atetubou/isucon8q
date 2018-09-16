@@ -393,7 +393,7 @@ func getInitializeHandler(c echo.Context) error {
 	}()
 
 	eventSheetCache = newEventSheetCache()
-	rows, err := db.Query("SELECT * FROM reservations WHERE canceled_at IS NULL GROUP BY event_id HAVING reserved_at = MIN(reserved_at)")
+	rows, err := db.Query("SELECT * FROM reservations WHERE canceled_at IS NULL")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -403,11 +403,8 @@ func getInitializeHandler(c echo.Context) error {
 		if err := rows.Scan(&reservation.ID, &reservation.EventID, &reservation.SheetID, &reservation.UserID, &reservation.ReservedAt, &reservation.CanceledAt); err != nil {
 			log.Fatal(err)
 		}
-
-		log.Print(reservation)
-
+	
 		if reservation.CanceledAt == nil {
-			log.Print(reservation)
 			eventSheetCache.Set(reservation.EventID, reservation.SheetID, EventSheetReservation{ reservation.UserID, *(reservation.ReservedAt)} )
 		}
 	}
