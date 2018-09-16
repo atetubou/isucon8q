@@ -27,7 +27,8 @@ sudo rsync -av etc/nginx/ /etc/nginx/
 # rsync -av etc/security/ /etc/security/
 
 # sudo service mariadb restart
-sudo rm -rf /var/log/nginx/main_access.log
+sudo rm -rf /var/log/nginx/*.log
+
 sudo systemctl disable h2o.service
 sudo systemctl stop h2o.service
 sudo systemctl enable nginx.service
