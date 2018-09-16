@@ -1012,6 +1012,14 @@ func main() {
 	)
 
 	var err error
+	logfile, err := os.Create("/tmp/log.log")
+	if err != nil {
+		panic("cannnot open test.log:" + err.Error())
+	}
+	defer logfile.Close()
+	log.SetOutput(io.MultiWriter(logfile, os.Stdout))
+	log.SetFlags(log.Ldate | log.Ltime)
+	
 	db, err = sql.Open("mysql", dsn)
 	if err != nil {
 		log.Fatal(err)
