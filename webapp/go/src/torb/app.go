@@ -752,11 +752,11 @@ func deleteReservationHandler(c echo.Context) error {
 		return resError(c, "not_permitted", 403)
 	}
 
-	eventSheetCache.Delete(reservation.EventID, reservation.SheetID)
 	if _, err := tx.Exec("UPDATE reservations SET canceled_at = ? WHERE id = ?", time.Now().UTC().Format("2006-01-02 15:04:05.000000"), reservation.ID); err != nil {
 		tx.Rollback()
 		return err
 	}
+	eventSheetCache.Delete(reservation.EventID, reservation.SheetID)
 	if err := tx.Commit(); err != nil {
 		return err
 	}
