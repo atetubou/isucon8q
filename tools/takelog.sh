@@ -3,7 +3,7 @@ cd $(dirname $0)
 
 HOSTNAME=$(hostname)
 
-source /home/isucon/torb/webapp/env.sh
+export $(cat /home/isucon/torb/webapp/env.sh)
 
 # Do not add '/'
 ruby stat.rb '^/api/events/\d+/actions/reserve$' \
