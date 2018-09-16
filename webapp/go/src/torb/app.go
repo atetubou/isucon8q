@@ -326,10 +326,11 @@ func getIndexHandler(c echo.Context) error {
 func getInitializeHandler(c echo.Context) error {
 	cmd := exec.Command("../../db/init.sh")
 	cmd.Stdin = os.Stdin
-	cmd.Stdout = os.Stdout
+	cmd.Stdout = os.Stderr
+	cmd.Stderr = os.Stderr
 	err := cmd.Run()
 	if err != nil {
-		return nil
+		log.Print(err)
 	}
 
 	f, err := os.Create("/tmp/cpuprofile")
@@ -337,7 +338,7 @@ func getInitializeHandler(c echo.Context) error {
 		log.Fatal(err)
 	}
 	if err := pprof.StartCPUProfile(f); err != nil {
-		log.Print("could not start CPU profile: ", err)
+		log.Fatal("could not start CPU profile: ", err)
 	}
 
 	go func() {
