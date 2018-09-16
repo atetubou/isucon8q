@@ -230,6 +230,9 @@ func getLoginAdministrator(c echo.Context) (*Administrator, error) {
 	}
 	var administrator Administrator
 	err := db.QueryRow("SELECT id, nickname FROM administrators WHERE id = ?", administratorID).Scan(&administrator.ID, &administrator.Nickname)
+	if err != nil {
+		log.Fatal("db.QueryRow:", err)
+	}
 	return &administrator, err
 }
 
@@ -766,9 +769,11 @@ func deleteReservationHandler(c echo.Context) error {
 func getAdminHandler(c echo.Context) error {
 	var events []*Event
 	administrator := c.Get("administrator")
+	log.Printf("getAdminHandler: %q", administrator)
 	if administrator != nil {
 		var err error
 		if events, err = getEvents(true); err != nil {
+			log.Printf("getEvents: %v", err)
 			return err
 		}
 	}
