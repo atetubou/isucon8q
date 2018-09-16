@@ -328,6 +328,8 @@ func fillinAdministrator(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		if administrator, err := getLoginAdministrator(c); err == nil {
 			c.Set("administrator", administrator)
+		} else {
+			log.Printf("fillinAdministrator: %v", err)
 		}
 		return next(c)
 	}
