@@ -92,8 +92,8 @@ type EventSheetKey struct {
 }
 
 type EventSheetReservation struct {
-	UserID int64
-	ReservedAt time.Time	
+	UserID     int64
+	ReservedAt time.Time
 }
 
 type EventSheetReservationCache struct {
@@ -108,7 +108,7 @@ func newEventSheetCache() EventSheetReservationCache {
 }
 
 func (c *EventSheetReservationCache) Get(eventId int64, sheetId int64) *EventSheetReservation {
-	key := EventSheetKey{ eventId, sheetId }
+	key := EventSheetKey{eventId, sheetId}
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 	if v, ok := c.cache[key]; ok {
@@ -118,21 +118,20 @@ func (c *EventSheetReservationCache) Get(eventId int64, sheetId int64) *EventShe
 }
 
 func (c *EventSheetReservationCache) Set(eventId int64, sheetId int64, reservation EventSheetReservation) {
-	key := EventSheetKey{ eventId, sheetId }
+	key := EventSheetKey{eventId, sheetId}
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	c.cache[key] = reservation
 }
 
 func (c *EventSheetReservationCache) Delete(eventId int64, sheetId int64) {
-	key := EventSheetKey{ eventId, sheetId }
+	key := EventSheetKey{eventId, sheetId}
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	delete(c.cache, key)
 }
 
 var eventSheetCache EventSheetReservationCache
-
 
 func sessUserID(c echo.Context) int64 {
 	sess, _ := session.Get("session", c)
@@ -287,7 +286,7 @@ func getEvent(eventID, loginUserID int64) (*Event, error) {
 		event.Sheets[sheet.Rank].Price = event.Price + sheet.Price
 		event.Total++
 		event.Sheets[sheet.Rank].Total++
-		
+
 		reservation := eventSheetCache.Get(event.ID, sheet.ID)
 		if reservation != nil {
 			sheet.Mine = reservation.UserID == loginUserID
@@ -393,29 +392,29 @@ func getInitializeHandler(c echo.Context) error {
 	if err := pprof.StartCPUProfile(f); err != nil {
 		log.Fatal("could not start CPU profile: ", err)
 	}
-	
+
 	go func() {
 		time.Sleep(time.Second * 70)
 		defer pprof.StopCPUProfile()
 	}()
 
 	eventSheetCache = newEventSheetCache()
-	rows, err := db.Query("SELECT * FROM reservations WHERE canceled_at IS NULL")
+	rows, err = db.Query("SELECT * FROM reservations WHERE canceled_at IS NULL")
 	if err != nil {
 		log.Fatal(err)
 	}
-	
+
 	for rows.Next() {
 		var reservation Reservation
 		if err := rows.Scan(&reservation.ID, &reservation.EventID, &reservation.SheetID, &reservation.UserID, &reservation.ReservedAt, &reservation.CanceledAt); err != nil {
 			log.Fatal(err)
 		}
-	
+
 		if reservation.CanceledAt == nil {
-			eventSheetCache.Set(reservation.EventID, reservation.SheetID, EventSheetReservation{ reservation.UserID, *(reservation.ReservedAt)} )
+			eventSheetCache.Set(reservation.EventID, reservation.SheetID, EventSheetReservation{reservation.UserID, *(reservation.ReservedAt)})
 		}
 	}
-	
+
 	return c.NoContent(204)
 }
 
@@ -659,7 +658,6 @@ func postReserveHandler(c echo.Context) error {
 			return err
 		}
 
-		
 		if err != nil {
 			return err
 		}
@@ -678,7 +676,7 @@ func postReserveHandler(c echo.Context) error {
 			continue
 		}
 
-		eventSheetCache.Set(event.ID, sheet.ID, EventSheetReservation{ user.ID, t })
+		eventSheetCache.Set(event.ID, sheet.ID, EventSheetReservation{user.ID, t})
 		if err := tx.Commit(); err != nil {
 			tx.Rollback()
 			log.Println("re-try: rollback by", err)
@@ -753,7 +751,6 @@ func deleteReservationHandler(c echo.Context) error {
 	if err := tx.Commit(); err != nil {
 		return err
 	}
-	
 
 	return c.NoContent(204)
 }
