@@ -93,7 +93,7 @@ type EventSheetKey struct {
 
 type EventSheetReservation struct {
 	UserID int64
-	ReservedAt *time.Time	
+	ReservedAt time.Time	
 }
 
 type EventSheetReservationCache struct {
@@ -299,7 +299,7 @@ func getEvent(eventID, loginUserID int64) (*Event, error) {
 		event.Sheets[sheet.Rank].Total++
 		
 		reservation := eventSheetCache.Get(event.ID, sheet.ID)
-		if reservation == nil {
+		if reservation != nil {
 			sheet.Mine = reservation.UserID == loginUserID
 			sheet.Reserved = true
 			sheet.ReservedAtUnix = reservation.ReservedAt.Unix()
@@ -403,7 +403,7 @@ func getInitializeHandler(c echo.Context) error {
 		if err := rows.Scan(&reservation.ID, &reservation.EventID, &reservation.SheetID, &reservation.UserID, &reservation.ReservedAt, &reservation.CanceledAt); err != nil {
 			log.Fatal(err)
 		}
-		eventSheetCache.Set(reservation.EventID, reservation.SheetID, EventSheetReservation{ reservation.UserID, reservation.ReservedAt} )
+		eventSheetCache.Set(reservation.EventID, reservation.SheetID, EventSheetReservation{ reservation.UserID, *(reservation.ReservedAt)} )
 	}
 	
 	return c.NoContent(204)
@@ -671,7 +671,7 @@ func postReserveHandler(c echo.Context) error {
 			log.Println("re-try: rollback by", err)
 			continue
 		}
-		eventSheetCache.Set(event.ID, sheet.ID, EventSheetReservation{ user.ID, &t })
+		eventSheetCache.Set(event.ID, sheet.ID, EventSheetReservation{ user.ID, t })
 
 		break
 	}
