@@ -677,13 +677,13 @@ func postReserveHandler(c echo.Context) error {
 			log.Println("re-try: rollback by", err)
 			continue
 		}
+
+		eventSheetCache.Set(event.ID, sheet.ID, EventSheetReservation{ user.ID, t })
 		if err := tx.Commit(); err != nil {
 			tx.Rollback()
 			log.Println("re-try: rollback by", err)
 			continue
 		}
-		eventSheetCache.Set(event.ID, sheet.ID, EventSheetReservation{ user.ID, t })
-
 		break
 	}
 	return c.JSON(202, echo.Map{
@@ -745,11 +745,11 @@ func deleteReservationHandler(c echo.Context) error {
 		return resError(c, "not_permitted", 403)
 	}
 
+	eventSheetCache.Delete(reservation.EventID, reservation.SheetID)
 	if _, err := tx.Exec("UPDATE reservations SET canceled_at = ? WHERE id = ?", time.Now().UTC().Format("2006-01-02 15:04:05.000000"), reservation.ID); err != nil {
 		tx.Rollback()
 		return err
 	}
-	eventSheetCache.Delete(reservation.EventID, reservation.SheetID)
 	if err := tx.Commit(); err != nil {
 		return err
 	}
