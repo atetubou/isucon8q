@@ -283,6 +283,7 @@ func getEvent(eventID, loginUserID int64) (*Event, error) {
 	}
 
 	for _, sheet := range allSheets {
+		sheet := sheet
 		event.Sheets[sheet.Rank].Price = event.Price + sheet.Price
 		event.Total++
 		event.Sheets[sheet.Rank].Total++
