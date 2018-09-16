@@ -1,902 +1,910 @@
-Total: 50.29s
+Total: 1.06mins
 ROUTINE ======================== main.(*EventSheetReservationCache).Get in /home/isucon/isucon8q/webapp/go/src/torb/app.go
-     790ms      8.33s (flat, cum) 16.56% of Total
-         .          .    105:	return EventSheetReservationCache{
-         .          .    106:		cache: make(map[EventSheetKey]EventSheetReservation),
-         .          .    107:	}
-         .          .    108:}
-         .          .    109:
-      20ms       20ms    110:func (c *EventSheetReservationCache) Get(eventId int64, sheetId int64) *EventSheetReservation {
-         .          .    111:	key := EventSheetKey{eventId, sheetId}
-     280ms      1.12s    112:	c.mu.RLock()
-      70ms      650ms    113:	defer c.mu.RUnlock()
-     390ms      5.04s    114:	if v, ok := c.cache[key]; ok {
-         .      430ms    115:		return &v
-         .          .    116:	}
-      30ms      1.07s    117:	return nil
-         .          .    118:}
-         .          .    119:
-         .          .    120:func (c *EventSheetReservationCache) Set(eventId int64, sheetId int64, reservation EventSheetReservation) {
-         .          .    121:	key := EventSheetKey{eventId, sheetId}
-         .          .    122:	c.mu.Lock()
+     670ms      9.67s (flat, cum) 15.26% of Total
+         .          .    110:		mu:    make([]sync.RWMutex, 1010),
+         .          .    111:		cache: cache,
+         .          .    112:	}
+         .          .    113:}
+         .          .    114:
+      50ms       50ms    115:func (c *EventSheetReservationCache) Get(eventId int64, sheetId int64) *EventSheetReservation {
+         .          .    116:	//key := EventSheetKey{eventId, sheetId}
+      50ms      680ms    117:	c.mu[sheetId].RLock()
+      70ms      920ms    118:	defer c.mu[sheetId].RUnlock()
+     450ms      5.98s    119:	if v, ok := c.cache[sheetId][eventId]; ok {
+      10ms      620ms    120:		return &v
+         .          .    121:	}
+      40ms      1.42s    122:	return nil
+         .          .    123:}
+         .          .    124:
+         .          .    125:func (c *EventSheetReservationCache) Set(eventId int64, sheetId int64, reservation EventSheetReservation) {
+         .          .    126:	//key := EventSheetKey{eventId, sheetId}
+         .          .    127:	c.mu[sheetId].Lock()
 ROUTINE ======================== main.(*Renderer).Render in /home/isucon/isucon8q/webapp/go/src/torb/app.go
-         0      560ms (flat, cum)  1.11% of Total
-         .          .    344:type Renderer struct {
-         .          .    345:	templates *template.Template
-         .          .    346:}
-         .          .    347:
-         .          .    348:func (r *Renderer) Render(w io.Writer, name string, data interface{}, c echo.Context) error {
-         .      560ms    349:	return r.templates.ExecuteTemplate(w, name, data)
-         .          .    350:}
-         .          .    351:
-         .          .    352:func getIndexHandler(c echo.Context) error {
-         .          .    353:	events, err := getEvents(false)
-         .          .    354:	if err != nil {
+         0      790ms (flat, cum)  1.25% of Total
+         .          .    349:type Renderer struct {
+         .          .    350:	templates *template.Template
+         .          .    351:}
+         .          .    352:
+         .          .    353:func (r *Renderer) Render(w io.Writer, name string, data interface{}, c echo.Context) error {
+         .      790ms    354:	return r.templates.ExecuteTemplate(w, name, data)
+         .          .    355:}
+         .          .    356:
+         .          .    357:func getIndexHandler(c echo.Context) error {
+         .          .    358:	events, err := getEvents(false)
+         .          .    359:	if err != nil {
 ROUTINE ======================== main.adminLoginRequired.func1 in /home/isucon/isucon8q/webapp/go/src/torb/app.go
-         0     17.83s (flat, cum) 35.45% of Total
-         .          .    204:	}
-         .          .    205:}
-         .          .    206:
-         .          .    207:func adminLoginRequired(next echo.HandlerFunc) echo.HandlerFunc {
-         .          .    208:	return func(c echo.Context) error {
-         .       40ms    209:		if _, err := getLoginAdministrator(c); err != nil {
-         .          .    210:			return resError(c, "admin_login_required", 401)
-         .          .    211:		}
-         .     17.79s    212:		return next(c)
-         .          .    213:	}
-         .          .    214:}
-         .          .    215:
-         .          .    216:func getLoginUser(c echo.Context) (*User, error) {
-         .          .    217:	userID := sessUserID(c)
+         0     20.44s (flat, cum) 32.25% of Total
+         .          .    209:	}
+         .          .    210:}
+         .          .    211:
+         .          .    212:func adminLoginRequired(next echo.HandlerFunc) echo.HandlerFunc {
+         .          .    213:	return func(c echo.Context) error {
+         .       50ms    214:		if _, err := getLoginAdministrator(c); err != nil {
+         .          .    215:			return resError(c, "admin_login_required", 401)
+         .          .    216:		}
+         .     20.39s    217:		return next(c)
+         .          .    218:	}
+         .          .    219:}
+         .          .    220:
+         .          .    221:func getLoginUser(c echo.Context) (*User, error) {
+         .          .    222:	userID := sessUserID(c)
 ROUTINE ======================== main.deleteReservationHandler in /home/isucon/isucon8q/webapp/go/src/torb/app.go
-         0      490ms (flat, cum)  0.97% of Total
-         .          .    714:		return resError(c, "not_found", 404)
-         .          .    715:	}
-         .          .    716:	rank := c.Param("rank")
-         .          .    717:	num := c.Param("num")
-         .          .    718:
-         .       20ms    719:	user, err := getLoginUser(c)
-         .          .    720:	if err != nil {
-         .          .    721:		return err
-         .          .    722:	}
+         0      970ms (flat, cum)  1.53% of Total
+         .          .    719:		return resError(c, "not_found", 404)
+         .          .    720:	}
+         .          .    721:	rank := c.Param("rank")
+         .          .    722:	num := c.Param("num")
          .          .    723:
-         .      330ms    724:	event, err := getEvent(eventID, user.ID)
+         .       50ms    724:	user, err := getLoginUser(c)
          .          .    725:	if err != nil {
-         .          .    726:		if err == sql.ErrNoRows {
-         .          .    727:			return resError(c, "invalid_event", 404)
-         .          .    728:		}
-         .          .    729:		return err
-         .          .    730:	} else if !event.PublicFg {
-         .          .    731:		return resError(c, "invalid_event", 404)
-         .          .    732:	}
-         .          .    733:
-         .       10ms    734:	if !validateRank(rank) {
-         .          .    735:		return resError(c, "invalid_rank", 404)
-         .          .    736:	}
-         .          .    737:
-         .          .    738:	var sheet Sheet
-         .       20ms    739:	if err := db.QueryRow("SELECT * FROM sheets WHERE `rank` = ? AND num = ?", rank, num).Scan(&sheet.ID, &sheet.Rank, &sheet.Num, &sheet.Price); err != nil {
-         .          .    740:		if err == sql.ErrNoRows {
-         .          .    741:			return resError(c, "invalid_sheet", 404)
-         .          .    742:		}
-         .          .    743:		log.Println("we shouldn't reach here...", err)
-         .          .    744:		return err
-         .          .    745:	}
-         .          .    746:
-         .          .    747:	for {
-         .       20ms    748:		tx, err := db.Begin()
-         .          .    749:		if err != nil {
-         .          .    750:			return err
-         .          .    751:		}
-         .          .    752:
-         .          .    753:		var reservation Reservation
-         .       70ms    754:		if err := tx.QueryRow("SELECT * FROM reservations WHERE event_id = ? AND sheet_id = ? AND canceled_at IS NULL GROUP BY event_id HAVING reserved_at = MIN(reserved_at) FOR UPDATE", event.ID, sheet.ID).Scan(&reservation.ID, &reservation.EventID, &reservation.SheetID, &reservation.UserID, &reservation.ReservedAt, &reservation.CanceledAt); err != nil {
-         .          .    755:			tx.Rollback()
-         .          .    756:			if err == sql.ErrNoRows {
-         .          .    757:				return resError(c, "not_reserved", 400)
-         .          .    758:			}
-         .          .    759:			log.Println("re-try: rollback by", err)
-         .          .    760:			continue
-         .          .    761:		}
-         .          .    762:
-         .          .    763:		if reservation.UserID != user.ID {
-         .          .    764:			tx.Rollback()
-         .          .    765:			return resError(c, "not_permitted", 403)
+         .          .    726:		return err
+         .          .    727:	}
+         .          .    728:
+         .      660ms    729:	event, err := getEvent(eventID, user.ID)
+         .          .    730:	if err != nil {
+         .          .    731:		if err == sql.ErrNoRows {
+         .          .    732:			return resError(c, "invalid_event", 404)
+         .          .    733:		}
+         .          .    734:		return err
+         .          .    735:	} else if !event.PublicFg {
+         .          .    736:		return resError(c, "invalid_event", 404)
+         .          .    737:	}
+         .          .    738:
+         .       70ms    739:	if !validateRank(rank) {
+         .          .    740:		return resError(c, "invalid_rank", 404)
+         .          .    741:	}
+         .          .    742:
+         .          .    743:	var sheet Sheet
+         .       70ms    744:	if err := db.QueryRow("SELECT * FROM sheets WHERE `rank` = ? AND num = ?", rank, num).Scan(&sheet.ID, &sheet.Rank, &sheet.Num, &sheet.Price); err != nil {
+         .          .    745:		if err == sql.ErrNoRows {
+         .          .    746:			return resError(c, "invalid_sheet", 404)
+         .          .    747:		}
+         .          .    748:		log.Println("we shouldn't reach here...", err)
+         .          .    749:		return err
+         .          .    750:	}
+         .          .    751:
+         .          .    752:	for {
+         .       10ms    753:		tx, err := db.Begin()
+         .          .    754:		if err != nil {
+         .          .    755:			return err
+         .          .    756:		}
+         .          .    757:
+         .          .    758:		var reservation Reservation
+         .       50ms    759:		if err := tx.QueryRow("SELECT * FROM reservations WHERE event_id = ? AND sheet_id = ? AND canceled_at IS NULL GROUP BY event_id HAVING reserved_at = MIN(reserved_at) FOR UPDATE", event.ID, sheet.ID).Scan(&reservation.ID, &reservation.EventID, &reservation.SheetID, &reservation.UserID, &reservation.ReservedAt, &reservation.CanceledAt); err != nil {
+         .          .    760:			tx.Rollback()
+         .          .    761:			if err == sql.ErrNoRows {
+         .          .    762:				return resError(c, "not_reserved", 400)
+         .          .    763:			}
+         .          .    764:			log.Println("re-try: rollback by", err)
+         .          .    765:			continue
          .          .    766:		}
          .          .    767:
-         .       20ms    768:		if _, err := tx.Exec("UPDATE reservations SET canceled_at = ? WHERE id = ?", time.Now().UTC().Format("2006-01-02 15:04:05.000000"), reservation.ID); err != nil {
+         .          .    768:		if reservation.UserID != user.ID {
          .          .    769:			tx.Rollback()
-         .          .    770:			log.Println("re-try: rollback by", err)
-         .          .    771:			continue
-         .          .    772:		}
-         .          .    773:
+         .          .    770:			return resError(c, "not_permitted", 403)
+         .          .    771:		}
+         .          .    772:
+         .       50ms    773:		if _, err := tx.Exec("UPDATE reservations SET canceled_at = ? WHERE id = ?", time.Now().UTC().Format("2006-01-02 15:04:05.000000"), reservation.ID); err != nil {
+         .          .    774:			tx.Rollback()
+         .          .    775:			log.Println("re-try: rollback by", err)
+         .          .    776:			continue
+         .          .    777:		}
+         .          .    778:
+         .          .    779:		eventSheetCache.Delete(reservation.EventID, reservation.SheetID)
+         .       10ms    780:		if err := tx.Commit(); err != nil {
+         .          .    781:			return err
+         .          .    782:			log.Println("re-try: rollback by", err)
+         .          .    783:			continue
+         .          .    784:		}
+         .          .    785:		break
 ROUTINE ======================== main.fillinAdministrator.func1 in /home/isucon/isucon8q/webapp/go/src/torb/app.go
-         0      1.67s (flat, cum)  3.32% of Total
-         .          .    324:	}
-         .          .    325:}
-         .          .    326:
-         .          .    327:func fillinAdministrator(next echo.HandlerFunc) echo.HandlerFunc {
-         .          .    328:	return func(c echo.Context) error {
-         .       30ms    329:		if administrator, err := getLoginAdministrator(c); err == nil {
-         .          .    330:			c.Set("administrator", administrator)
-         .          .    331:		} else {
-         .          .    332:			log.Printf("fillinAdministrator: %v", err)
-         .          .    333:		}
-         .      1.64s    334:		return next(c)
-         .          .    335:	}
-         .          .    336:}
-         .          .    337:
-         .          .    338:func validateRank(rank string) bool {
-         .          .    339:	var count int
+         0      760ms (flat, cum)  1.20% of Total
+         .          .    332:func fillinAdministrator(next echo.HandlerFunc) echo.HandlerFunc {
+         .          .    333:	return func(c echo.Context) error {
+         .          .    334:		if administrator, err := getLoginAdministrator(c); err == nil {
+         .          .    335:			c.Set("administrator", administrator)
+         .          .    336:		} else {
+         .       10ms    337:			log.Printf("fillinAdministrator: %v", err)
+         .          .    338:		}
+         .      750ms    339:		return next(c)
+         .          .    340:	}
+         .          .    341:}
+         .          .    342:
+         .          .    343:func validateRank(rank string) bool {
+         .          .    344:	var count int
 ROUTINE ======================== main.fillinUser.func1 in /home/isucon/isucon8q/webapp/go/src/torb/app.go
-      10ms     15.47s (flat, cum) 30.76% of Total
-         .          .    314:	sanitized.ClosedFg = false
-         .          .    315:	return &sanitized
-         .          .    316:}
-         .          .    317:
-         .          .    318:func fillinUser(next echo.HandlerFunc) echo.HandlerFunc {
-      10ms       10ms    319:	return func(c echo.Context) error {
-         .      100ms    320:		if user, err := getLoginUser(c); err == nil {
-         .          .    321:			c.Set("user", user)
-         .          .    322:		}
-         .     15.36s    323:		return next(c)
-         .          .    324:	}
-         .          .    325:}
-         .          .    326:
-         .          .    327:func fillinAdministrator(next echo.HandlerFunc) echo.HandlerFunc {
-         .          .    328:	return func(c echo.Context) error {
+         0     20.99s (flat, cum) 33.12% of Total
+         .          .    320:	return &sanitized
+         .          .    321:}
+         .          .    322:
+         .          .    323:func fillinUser(next echo.HandlerFunc) echo.HandlerFunc {
+         .          .    324:	return func(c echo.Context) error {
+         .      220ms    325:		if user, err := getLoginUser(c); err == nil {
+         .          .    326:			c.Set("user", user)
+         .          .    327:		}
+         .     20.77s    328:		return next(c)
+         .          .    329:	}
+         .          .    330:}
+         .          .    331:
+         .          .    332:func fillinAdministrator(next echo.HandlerFunc) echo.HandlerFunc {
+         .          .    333:	return func(c echo.Context) error {
 ROUTINE ======================== main.getAdminEventHandler in /home/isucon/isucon8q/webapp/go/src/torb/app.go
-         0       30ms (flat, cum)  0.06% of Total
-         .          .    881:func getAdminEventHandler(c echo.Context) error {
-         .          .    882:	eventID, err := strconv.ParseInt(c.Param("id"), 10, 64)
-         .          .    883:	if err != nil {
-         .          .    884:		return resError(c, "not_found", 404)
-         .          .    885:	}
-         .       20ms    886:	event, err := getEvent(eventID, -1)
-         .          .    887:	if err != nil {
-         .          .    888:		if err == sql.ErrNoRows {
-         .          .    889:			return resError(c, "not_found", 404)
-         .          .    890:		}
-         .          .    891:		return err
-         .          .    892:	}
-         .       10ms    893:	return c.JSON(200, event)
-         .          .    894:}
-         .          .    895:
-         .          .    896:func postAdminEditEventHandler(c echo.Context) error {
-         .          .    897:	eventID, err := strconv.ParseInt(c.Param("id"), 10, 64)
-         .          .    898:	if err != nil {
+         0       60ms (flat, cum) 0.095% of Total
+         .          .    882:	}
+         .          .    883:	return c.JSON(200, event)
+         .          .    884:}
+         .          .    885:
+         .          .    886:func getAdminEventHandler(c echo.Context) error {
+         .       10ms    887:	eventID, err := strconv.ParseInt(c.Param("id"), 10, 64)
+         .          .    888:	if err != nil {
+         .          .    889:		return resError(c, "not_found", 404)
+         .          .    890:	}
+         .       40ms    891:	event, err := getEvent(eventID, -1)
+         .          .    892:	if err != nil {
+         .          .    893:		if err == sql.ErrNoRows {
+         .          .    894:			return resError(c, "not_found", 404)
+         .          .    895:		}
+         .          .    896:		return err
+         .          .    897:	}
+         .       10ms    898:	return c.JSON(200, event)
+         .          .    899:}
+         .          .    900:
+         .          .    901:func postAdminEditEventHandler(c echo.Context) error {
+         .          .    902:	eventID, err := strconv.ParseInt(c.Param("id"), 10, 64)
+         .          .    903:	if err != nil {
 ROUTINE ======================== main.getAdminHandler in /home/isucon/isucon8q/webapp/go/src/torb/app.go
-         0      1.64s (flat, cum)  3.26% of Total
-         .          .    786:	var events []*Event
-         .          .    787:	administrator := c.Get("administrator")
-         .          .    788:	log.Printf("getAdminHandler: %q", administrator)
-         .          .    789:	if administrator != nil {
-         .          .    790:		var err error
-         .      1.56s    791:		if events, err = getEvents(true); err != nil {
-         .          .    792:			log.Printf("getEvents: %v", err)
-         .          .    793:			return err
-         .          .    794:		}
-         .          .    795:	}
-         .       80ms    796:	return c.Render(200, "admin.tmpl", echo.Map{
-         .          .    797:		"events":        events,
-         .          .    798:		"administrator": administrator,
-         .          .    799:		"origin":        c.Scheme() + "://" + c.Request().Host,
-         .          .    800:	})
-         .          .    801:}
+         0      750ms (flat, cum)  1.18% of Total
+         .          .    791:	var events []*Event
+         .          .    792:	administrator := c.Get("administrator")
+         .          .    793:	log.Printf("getAdminHandler: %q", administrator)
+         .          .    794:	if administrator != nil {
+         .          .    795:		var err error
+         .      740ms    796:		if events, err = getEvents(true); err != nil {
+         .          .    797:			log.Printf("getEvents: %v", err)
+         .          .    798:			return err
+         .          .    799:		}
+         .          .    800:	}
+         .       10ms    801:	return c.Render(200, "admin.tmpl", echo.Map{
+         .          .    802:		"events":        events,
+         .          .    803:		"administrator": administrator,
+         .          .    804:		"origin":        c.Scheme() + "://" + c.Request().Host,
+         .          .    805:	})
+         .          .    806:}
 ROUTINE ======================== main.getAdminReportsEventHandler in /home/isucon/isucon8q/webapp/go/src/torb/app.go
-      30ms      1.11s (flat, cum)  2.21% of Total
-         .          .    947:	eventID, err := strconv.ParseInt(c.Param("id"), 10, 64)
-         .          .    948:	if err != nil {
-         .          .    949:		return resError(c, "not_found", 404)
-         .          .    950:	}
-         .          .    951:
-         .       70ms    952:	event, err := getEvent(eventID, -1)
+      10ms      1.29s (flat, cum)  2.04% of Total
+         .          .    952:	eventID, err := strconv.ParseInt(c.Param("id"), 10, 64)
          .          .    953:	if err != nil {
-         .          .    954:		return err
+         .          .    954:		return resError(c, "not_found", 404)
          .          .    955:	}
          .          .    956:
-         .          .    957:	rows, err := db.Query("SELECT r.*, s.rank AS sheet_rank, s.num AS sheet_num, s.price AS sheet_price, e.price AS event_price FROM reservations r INNER JOIN sheets s ON s.id = r.sheet_id INNER JOIN events e ON e.id = r.event_id WHERE r.event_id = ? ORDER BY reserved_at ASC FOR UPDATE", event.ID)
+         .       40ms    957:	event, err := getEvent(eventID, -1)
          .          .    958:	if err != nil {
          .          .    959:		return err
          .          .    960:	}
-         .          .    961:	defer rows.Close()
-         .          .    962:
-         .          .    963:	var reports []Report
-         .      170ms    964:	for rows.Next() {
-         .       20ms    965:		var reservation Reservation
-         .          .    966:		var sheet Sheet
-      20ms      310ms    967:		if err := rows.Scan(&reservation.ID, &reservation.EventID, &reservation.SheetID, &reservation.UserID, &reservation.ReservedAt, &reservation.CanceledAt, &sheet.Rank, &sheet.Num, &sheet.Price, &event.Price); err != nil {
-         .          .    968:			return err
-         .          .    969:		}
-         .          .    970:		report := Report{
-         .          .    971:			ReservationID: reservation.ID,
-         .          .    972:			EventID:       event.ID,
-         .          .    973:			Rank:          sheet.Rank,
-         .          .    974:			Num:           sheet.Num,
-         .          .    975:			UserID:        reservation.UserID,
-         .      130ms    976:			SoldAt:        reservation.ReservedAt.Format("2006-01-02T15:04:05.000000Z"),
-         .          .    977:			Price:         event.Price + sheet.Price,
-         .          .    978:		}
-         .          .    979:		if reservation.CanceledAt != nil {
-         .       90ms    980:			report.CanceledAt = reservation.CanceledAt.Format("2006-01-02T15:04:05.000000Z")
-         .          .    981:		}
-      10ms       40ms    982:		reports = append(reports, report)
-         .          .    983:	}
-         .      280ms    984:	return renderReportCSV(c, reports)
-         .          .    985:}
-         .          .    986:
-         .          .    987:func getAdminReportsHandler(c echo.Context) error {
-         .          .    988:	rows, err := db.Query("select r.*, s.rank as sheet_rank, s.num as sheet_num, s.price as sheet_price, e.id as event_id, e.price as event_price from reservations r inner join sheets s on s.id = r.sheet_id inner join events e on e.id = r.event_id order by reserved_at asc for update")
-         .          .    989:	if err != nil {
+         .          .    961:
+         .       10ms    962:	rows, err := db.Query("SELECT r.*, s.rank AS sheet_rank, s.num AS sheet_num, s.price AS sheet_price, e.price AS event_price FROM reservations r INNER JOIN sheets s ON s.id = r.sheet_id INNER JOIN events e ON e.id = r.event_id WHERE r.event_id = ? ORDER BY reserved_at ASC FOR UPDATE", event.ID)
+         .          .    963:	if err != nil {
+         .          .    964:		return err
+         .          .    965:	}
+         .          .    966:	defer rows.Close()
+         .          .    967:
+         .          .    968:	var reports []Report
+      10ms      270ms    969:	for rows.Next() {
+         .       50ms    970:		var reservation Reservation
+         .       10ms    971:		var sheet Sheet
+         .      280ms    972:		if err := rows.Scan(&reservation.ID, &reservation.EventID, &reservation.SheetID, &reservation.UserID, &reservation.ReservedAt, &reservation.CanceledAt, &sheet.Rank, &sheet.Num, &sheet.Price, &event.Price); err != nil {
+         .          .    973:			return err
+         .          .    974:		}
+         .          .    975:		report := Report{
+         .          .    976:			ReservationID: reservation.ID,
+         .          .    977:			EventID:       event.ID,
+         .          .    978:			Rank:          sheet.Rank,
+         .          .    979:			Num:           sheet.Num,
+         .          .    980:			UserID:        reservation.UserID,
+         .      120ms    981:			SoldAt:        reservation.ReservedAt.Format("2006-01-02T15:04:05.000000Z"),
+         .          .    982:			Price:         event.Price + sheet.Price,
+         .          .    983:		}
+         .          .    984:		if reservation.CanceledAt != nil {
+         .      100ms    985:			report.CanceledAt = reservation.CanceledAt.Format("2006-01-02T15:04:05.000000Z")
+         .          .    986:		}
+         .       40ms    987:		reports = append(reports, report)
+         .          .    988:	}
+         .      370ms    989:	return renderReportCSV(c, reports)
+         .          .    990:}
+         .          .    991:
+         .          .    992:func getAdminReportsHandler(c echo.Context) error {
+         .          .    993:	rows, err := db.Query("select r.*, s.rank as sheet_rank, s.num as sheet_num, s.price as sheet_price, e.id as event_id, e.price as event_price from reservations r inner join sheets s on s.id = r.sheet_id inner join events e on e.id = r.event_id order by reserved_at asc for update")
+         .          .    994:	if err != nil {
 ROUTINE ======================== main.getAdminReportsHandler in /home/isucon/isucon8q/webapp/go/src/torb/app.go
-     120ms     16.60s (flat, cum) 33.01% of Total
-         .          .    990:		return err
-         .          .    991:	}
-         .          .    992:	defer rows.Close()
-         .          .    993:
-         .          .    994:	var reports []Report
-      20ms      5.02s    995:	for rows.Next() {
-      30ms      210ms    996:		var reservation Reservation
-         .      130ms    997:		var sheet Sheet
-      10ms      150ms    998:		var event Event
-      40ms      4.73s    999:		if err := rows.Scan(&reservation.ID, &reservation.EventID, &reservation.SheetID, &reservation.UserID, &reservation.ReservedAt, &reservation.CanceledAt, &sheet.Rank, &sheet.Num, &sheet.Price, &event.ID, &event.Price); err != nil {
-         .          .   1000:			return err
-         .          .   1001:		}
-         .          .   1002:		report := Report{
-         .          .   1003:			ReservationID: reservation.ID,
-         .          .   1004:			EventID:       event.ID,
-         .          .   1005:			Rank:          sheet.Rank,
-         .          .   1006:			Num:           sheet.Num,
-         .          .   1007:			UserID:        reservation.UserID,
-         .      930ms   1008:			SoldAt:        reservation.ReservedAt.Format("2006-01-02T15:04:05.000000Z"),
-         .          .   1009:			Price:         event.Price + sheet.Price,
-         .          .   1010:		}
-         .          .   1011:		if reservation.CanceledAt != nil {
-      10ms      780ms   1012:			report.CanceledAt = reservation.CanceledAt.Format("2006-01-02T15:04:05.000000Z")
-         .          .   1013:		}
-      10ms      840ms   1014:		reports = append(reports, report)
-         .          .   1015:	}
-         .      3.81s   1016:	return renderReportCSV(c, reports)
-         .          .   1017:}
-         .          .   1018:
-         .          .   1019:var db *sql.DB
-         .          .   1020:
-         .          .   1021:func main() {
+     110ms     18.97s (flat, cum) 29.93% of Total
+         .          .    995:		return err
+         .          .    996:	}
+         .          .    997:	defer rows.Close()
+         .          .    998:
+         .          .    999:	var reports []Report
+      10ms      5.72s   1000:	for rows.Next() {
+      10ms      260ms   1001:		var reservation Reservation
+         .      210ms   1002:		var sheet Sheet
+         .      250ms   1003:		var event Event
+      70ms      4.96s   1004:		if err := rows.Scan(&reservation.ID, &reservation.EventID, &reservation.SheetID, &reservation.UserID, &reservation.ReservedAt, &reservation.CanceledAt, &sheet.Rank, &sheet.Num, &sheet.Price, &event.ID, &event.Price); err != nil {
+         .          .   1005:			return err
+         .          .   1006:		}
+         .       40ms   1007:		report := Report{
+         .          .   1008:			ReservationID: reservation.ID,
+         .          .   1009:			EventID:       event.ID,
+         .          .   1010:			Rank:          sheet.Rank,
+         .          .   1011:			Num:           sheet.Num,
+         .          .   1012:			UserID:        reservation.UserID,
+         .      1.01s   1013:			SoldAt:        reservation.ReservedAt.Format("2006-01-02T15:04:05.000000Z"),
+         .          .   1014:			Price:         event.Price + sheet.Price,
+         .          .   1015:		}
+         .          .   1016:		if reservation.CanceledAt != nil {
+      10ms      1.06s   1017:			report.CanceledAt = reservation.CanceledAt.Format("2006-01-02T15:04:05.000000Z")
+         .          .   1018:		}
+      10ms      1.07s   1019:		reports = append(reports, report)
+         .          .   1020:	}
+         .      4.39s   1021:	return renderReportCSV(c, reports)
+         .          .   1022:}
+         .          .   1023:
+         .          .   1024:var db *sql.DB
+         .          .   1025:
+         .          .   1026:func main() {
 ROUTINE ======================== main.getEvent in /home/isucon/isucon8q/webapp/go/src/torb/app.go
-     1.24s     19.65s (flat, cum) 39.07% of Total
-         .          .    273:	return events, nil
-         .          .    274:}
-         .          .    275:
-         .          .    276:func getEvent(eventID, loginUserID int64) (*Event, error) {
-         .          .    277:	var event Event
-         .      1.98s    278:	if err := db.QueryRow("SELECT * FROM events WHERE id = ?", eventID).Scan(&event.ID, &event.Title, &event.PublicFg, &event.ClosedFg, &event.Price); err != nil {
-         .          .    279:		return nil, err
-         .          .    280:	}
-         .       20ms    281:	event.Sheets = map[string]*Sheets{
-         .       10ms    282:		"S": &Sheets{},
-         .       10ms    283:		"A": &Sheets{},
-         .          .    284:		"B": &Sheets{},
-         .          .    285:		"C": &Sheets{},
-         .          .    286:	}
-         .          .    287:
-      80ms      410ms    288:	for _, sheet := range allSheets {
-      80ms      2.41s    289:		sheet := sheet
-     100ms      1.44s    290:		event.Sheets[sheet.Rank].Price = event.Price + sheet.Price
-     100ms      100ms    291:		event.Total++
-     160ms      970ms    292:		event.Sheets[sheet.Rank].Total++
-         .          .    293:
-      20ms      8.35s    294:		reservation := eventSheetCache.Get(event.ID, sheet.ID)
-         .          .    295:		if reservation != nil {
-      10ms       10ms    296:			sheet.Mine = reservation.UserID == loginUserID
-         .          .    297:			sheet.Reserved = true
-         .          .    298:			sheet.ReservedAtUnix = reservation.ReservedAt.Unix()
-         .          .    299:		} else {
-         .          .    300:			event.Remains++
-     150ms      680ms    301:			event.Sheets[sheet.Rank].Remains++
-         .          .    302:		}
-         .          .    303:
-     540ms      3.26s    304:		event.Sheets[sheet.Rank].Detail = append(event.Sheets[sheet.Rank].Detail, &sheet)
-         .          .    305:	}
-         .          .    306:
-         .          .    307:	return &event, nil
-         .          .    308:}
-         .          .    309:
+     1.58s     24.72s (flat, cum) 39.00% of Total
+         .          .    278:	return events, nil
+         .          .    279:}
+         .          .    280:
+         .          .    281:func getEvent(eventID, loginUserID int64) (*Event, error) {
+         .          .    282:	var event Event
+      20ms      2.49s    283:	if err := db.QueryRow("SELECT * FROM events WHERE id = ?", eventID).Scan(&event.ID, &event.Title, &event.PublicFg, &event.ClosedFg, &event.Price); err != nil {
+         .          .    284:		return nil, err
+         .          .    285:	}
+         .       20ms    286:	event.Sheets = map[string]*Sheets{
+         .          .    287:		"S": &Sheets{},
+         .       20ms    288:		"A": &Sheets{},
+         .          .    289:		"B": &Sheets{},
+         .       10ms    290:		"C": &Sheets{},
+         .          .    291:	}
+         .          .    292:
+      70ms      400ms    293:	for _, sheet := range allSheets {
+      80ms      3.79s    294:		sheet := sheet
+     230ms      1.94s    295:		event.Sheets[sheet.Rank].Price = event.Price + sheet.Price
+      60ms       60ms    296:		event.Total++
+     180ms      1.34s    297:		event.Sheets[sheet.Rank].Total++
+         .          .    298:
+      30ms      9.70s    299:		reservation := eventSheetCache.Get(event.ID, sheet.ID)
+      20ms       20ms    300:		if reservation != nil {
+      30ms       30ms    301:			sheet.Mine = reservation.UserID == loginUserID
+      20ms       20ms    302:			sheet.Reserved = true
+      10ms       10ms    303:			sheet.ReservedAtUnix = reservation.ReservedAt.Unix()
+         .          .    304:		} else {
+      10ms       10ms    305:			event.Remains++
+     240ms      1.10s    306:			event.Sheets[sheet.Rank].Remains++
+         .          .    307:		}
+         .          .    308:
+     580ms      3.76s    309:		event.Sheets[sheet.Rank].Detail = append(event.Sheets[sheet.Rank].Detail, &sheet)
+         .          .    310:	}
+         .          .    311:
+         .          .    312:	return &event, nil
+         .          .    313:}
+         .          .    314:
+ROUTINE ======================== main.getEvent in /home/isucon/local/go/src/time/time.go
+      70ms       70ms (flat, cum)  0.11% of Total
+         .          .    153:	return int32(t.wall & nsecMask)
+         .          .    154:}
+         .          .    155:
+         .          .    156:// sec returns the time's seconds since Jan 1 year 1.
+         .          .    157:func (t *Time) sec() int64 {
+      10ms       10ms    158:	if t.wall&hasMonotonic != 0 {
+         .          .    159:		return wallToInternal + int64(t.wall<<1>>(nsecShift+1))
+         .          .    160:	}
+      10ms       10ms    161:	return int64(t.ext)
+         .          .    162:}
+         .          .    163:
+         .          .    164:// unixSec returns the time's seconds since Jan 1 1970 (Unix time).
+      50ms       50ms    165:func (t *Time) unixSec() int64 { return t.sec() + internalToUnix }
+         .          .    166:
+         .          .    167:// addSec adds d seconds to the time.
+         .          .    168:func (t *Time) addSec(d int64) {
+         .          .    169:	if t.wall&hasMonotonic != 0 {
+         .          .    170:		sec := int64(t.wall << 1 >> (nsecShift + 1))
 ROUTINE ======================== main.getEventHandler in /home/isucon/isucon8q/webapp/go/src/torb/app.go
-         0      2.58s (flat, cum)  5.13% of Total
-         .          .    620:	if err != nil {
-         .          .    621:		return resError(c, "not_found", 404)
-         .          .    622:	}
-         .          .    623:
-         .          .    624:	loginUserID := int64(-1)
-         .      340ms    625:	if user, err := getLoginUser(c); err == nil {
-         .          .    626:		loginUserID = user.ID
+         0      3.72s (flat, cum)  5.87% of Total
+         .          .    625:	if err != nil {
+         .          .    626:		return resError(c, "not_found", 404)
          .          .    627:	}
          .          .    628:
-         .      1.13s    629:	event, err := getEvent(eventID, loginUserID)
-         .          .    630:	if err != nil {
-         .          .    631:		if err == sql.ErrNoRows {
-         .          .    632:			return resError(c, "not_found", 404)
-         .          .    633:		}
-         .          .    634:		return err
-         .          .    635:	} else if !event.PublicFg {
-         .          .    636:		return resError(c, "not_found", 404)
-         .          .    637:	}
-         .      1.11s    638:	return c.JSON(200, sanitizeEvent(event))
-         .          .    639:}
-         .          .    640:func postReserveHandler(c echo.Context) error {
-         .          .    641:	eventID, err := strconv.ParseInt(c.Param("id"), 10, 64)
-         .          .    642:	if err != nil {
-         .          .    643:		return resError(c, "not_found", 404)
+         .          .    629:	loginUserID := int64(-1)
+         .      570ms    630:	if user, err := getLoginUser(c); err == nil {
+         .          .    631:		loginUserID = user.ID
+         .          .    632:	}
+         .          .    633:
+         .      1.56s    634:	event, err := getEvent(eventID, loginUserID)
+         .          .    635:	if err != nil {
+         .          .    636:		if err == sql.ErrNoRows {
+         .          .    637:			return resError(c, "not_found", 404)
+         .          .    638:		}
+         .          .    639:		return err
+         .          .    640:	} else if !event.PublicFg {
+         .          .    641:		return resError(c, "not_found", 404)
+         .          .    642:	}
+         .      1.59s    643:	return c.JSON(200, sanitizeEvent(event))
+         .          .    644:}
+         .          .    645:func postReserveHandler(c echo.Context) error {
+         .          .    646:	eventID, err := strconv.ParseInt(c.Param("id"), 10, 64)
+         .          .    647:	if err != nil {
+         .          .    648:		return resError(c, "not_found", 404)
 ROUTINE ======================== main.getEvents in /home/isucon/isucon8q/webapp/go/src/torb/app.go
-      20ms     16.31s (flat, cum) 32.43% of Total
-         .          .    235:	}
-         .          .    236:	return &administrator, err
-         .          .    237:}
-         .          .    238:
-         .          .    239:func getEvents(all bool) ([]*Event, error) {
-         .      110ms    240:	tx, err := db.Begin()
-         .          .    241:	if err != nil {
-         .          .    242:		return nil, err
-         .          .    243:	}
-         .          .    244:	defer tx.Commit()
-         .          .    245:
-         .       40ms    246:	rows, err := tx.Query("SELECT * FROM events ORDER BY id ASC")
-         .          .    247:	if err != nil {
-         .          .    248:		return nil, err
-         .          .    249:	}
-         .          .    250:	defer rows.Close()
-         .          .    251:
-         .          .    252:	var events []*Event
-         .       40ms    253:	for rows.Next() {
-         .       10ms    254:		var event Event
-         .       40ms    255:		if err := rows.Scan(&event.ID, &event.Title, &event.PublicFg, &event.ClosedFg, &event.Price); err != nil {
-         .          .    256:			return nil, err
-         .          .    257:		}
-         .          .    258:		if !all && !event.PublicFg {
-         .          .    259:			continue
-         .          .    260:		}
-         .          .    261:		events = append(events, &event)
-         .          .    262:	}
-         .          .    263:	for i, v := range events {
-      20ms     16.01s    264:		event, err := getEvent(v.ID, -1)
-         .          .    265:		if err != nil {
-         .          .    266:			return nil, err
-         .          .    267:		}
-         .          .    268:		for k := range event.Sheets {
-         .       10ms    269:			event.Sheets[k].Detail = nil
-         .          .    270:		}
-         .          .    271:		events[i] = event
-         .          .    272:	}
-         .       50ms    273:	return events, nil
-         .          .    274:}
-         .          .    275:
-         .          .    276:func getEvent(eventID, loginUserID int64) (*Event, error) {
-         .          .    277:	var event Event
-         .          .    278:	if err := db.QueryRow("SELECT * FROM events WHERE id = ?", eventID).Scan(&event.ID, &event.Title, &event.PublicFg, &event.ClosedFg, &event.Price); err != nil {
+      10ms     20.51s (flat, cum) 32.36% of Total
+         .          .    240:	}
+         .          .    241:	return &administrator, err
+         .          .    242:}
+         .          .    243:
+         .          .    244:func getEvents(all bool) ([]*Event, error) {
+         .       90ms    245:	tx, err := db.Begin()
+         .          .    246:	if err != nil {
+         .          .    247:		return nil, err
+         .          .    248:	}
+         .          .    249:	defer tx.Commit()
+         .          .    250:
+         .       50ms    251:	rows, err := tx.Query("SELECT * FROM events ORDER BY id ASC")
+         .          .    252:	if err != nil {
+         .          .    253:		return nil, err
+         .          .    254:	}
+         .          .    255:	defer rows.Close()
+         .          .    256:
+         .          .    257:	var events []*Event
+         .       60ms    258:	for rows.Next() {
+         .       10ms    259:		var event Event
+         .      100ms    260:		if err := rows.Scan(&event.ID, &event.Title, &event.PublicFg, &event.ClosedFg, &event.Price); err != nil {
+         .          .    261:			return nil, err
+         .          .    262:		}
+         .          .    263:		if !all && !event.PublicFg {
+         .          .    264:			continue
+         .          .    265:		}
+         .          .    266:		events = append(events, &event)
+         .          .    267:	}
+      10ms       10ms    268:	for i, v := range events {
+         .     20.08s    269:		event, err := getEvent(v.ID, -1)
+         .          .    270:		if err != nil {
+         .          .    271:			return nil, err
+         .          .    272:		}
+         .          .    273:		for k := range event.Sheets {
+         .          .    274:			event.Sheets[k].Detail = nil
+         .          .    275:		}
+         .          .    276:		events[i] = event
+         .          .    277:	}
+         .      110ms    278:	return events, nil
+         .          .    279:}
+         .          .    280:
+         .          .    281:func getEvent(eventID, loginUserID int64) (*Event, error) {
+         .          .    282:	var event Event
+         .          .    283:	if err := db.QueryRow("SELECT * FROM events WHERE id = ?", eventID).Scan(&event.ID, &event.Title, &event.PublicFg, &event.ClosedFg, &event.Price); err != nil {
 ROUTINE ======================== main.getIndexHandler in /home/isucon/isucon8q/webapp/go/src/torb/app.go
-         0     15.36s (flat, cum) 30.54% of Total
-         .          .    348:func (r *Renderer) Render(w io.Writer, name string, data interface{}, c echo.Context) error {
-         .          .    349:	return r.templates.ExecuteTemplate(w, name, data)
-         .          .    350:}
-         .          .    351:
-         .          .    352:func getIndexHandler(c echo.Context) error {
-         .     14.75s    353:	events, err := getEvents(false)
-         .          .    354:	if err != nil {
-         .          .    355:		return err
-         .          .    356:	}
-         .          .    357:	for i, v := range events {
-         .          .    358:		events[i] = sanitizeEvent(v)
-         .          .    359:	}
-         .      610ms    360:	return c.Render(200, "index.tmpl", echo.Map{
-         .          .    361:		"events": events,
-         .          .    362:		"user":   c.Get("user"),
-         .          .    363:		"origin": c.Scheme() + "://" + c.Request().Host,
-         .          .    364:	})
-         .          .    365:}
+      10ms     20.77s (flat, cum) 32.77% of Total
+         .          .    311:
+         .          .    312:	return &event, nil
+         .          .    313:}
+         .          .    314:
+         .          .    315:func sanitizeEvent(e *Event) *Event {
+      10ms       20ms    316:	sanitized := *e
+         .          .    317:	sanitized.Price = 0
+         .          .    318:	sanitized.PublicFg = false
+         .          .    319:	sanitized.ClosedFg = false
+         .          .    320:	return &sanitized
+         .          .    321:}
+         .          .    322:
+         .          .    323:func fillinUser(next echo.HandlerFunc) echo.HandlerFunc {
+         .          .    324:	return func(c echo.Context) error {
+         .          .    325:		if user, err := getLoginUser(c); err == nil {
+         .          .    326:			c.Set("user", user)
+         .          .    327:		}
+         .          .    328:		return next(c)
+         .          .    329:	}
+         .          .    330:}
+         .          .    331:
+         .          .    332:func fillinAdministrator(next echo.HandlerFunc) echo.HandlerFunc {
+         .          .    333:	return func(c echo.Context) error {
+         .          .    334:		if administrator, err := getLoginAdministrator(c); err == nil {
+         .          .    335:			c.Set("administrator", administrator)
+         .          .    336:		} else {
+         .          .    337:			log.Printf("fillinAdministrator: %v", err)
+         .          .    338:		}
+         .          .    339:		return next(c)
+         .          .    340:	}
+         .          .    341:}
+         .          .    342:
+         .          .    343:func validateRank(rank string) bool {
+         .          .    344:	var count int
+         .          .    345:	db.QueryRow("SELECT COUNT(*) FROM sheets WHERE `rank` = ?", rank).Scan(&count)
+         .          .    346:	return count > 0
+         .          .    347:}
+         .          .    348:
+         .          .    349:type Renderer struct {
+         .          .    350:	templates *template.Template
+         .          .    351:}
+         .          .    352:
+         .          .    353:func (r *Renderer) Render(w io.Writer, name string, data interface{}, c echo.Context) error {
+         .          .    354:	return r.templates.ExecuteTemplate(w, name, data)
+         .          .    355:}
+         .          .    356:
+         .          .    357:func getIndexHandler(c echo.Context) error {
+         .     19.77s    358:	events, err := getEvents(false)
+         .          .    359:	if err != nil {
+         .          .    360:		return err
+         .          .    361:	}
+         .          .    362:	for i, v := range events {
+         .          .    363:		events[i] = sanitizeEvent(v)
+         .          .    364:	}
+         .      950ms    365:	return c.Render(200, "index.tmpl", echo.Map{
+         .       20ms    366:		"events": events,
+         .          .    367:		"user":   c.Get("user"),
+         .       10ms    368:		"origin": c.Scheme() + "://" + c.Request().Host,
+         .          .    369:	})
+         .          .    370:}
+         .          .    371:
+         .          .    372:var allSheets []Sheet
+         .          .    373:
 ROUTINE ======================== main.getLoginAdministrator in /home/isucon/isucon8q/webapp/go/src/torb/app.go
-         0       70ms (flat, cum)  0.14% of Total
-         .          .    222:	err := db.QueryRow("SELECT id, nickname FROM users WHERE id = ?", userID).Scan(&user.ID, &user.Nickname)
-         .          .    223:	return &user, err
-         .          .    224:}
-         .          .    225:
-         .          .    226:func getLoginAdministrator(c echo.Context) (*Administrator, error) {
-         .       20ms    227:	administratorID := sessAdministratorID(c)
-         .          .    228:	if administratorID == 0 {
-         .          .    229:		return nil, errors.New("not logged in")
-         .          .    230:	}
-         .          .    231:	var administrator Administrator
-         .       50ms    232:	err := db.QueryRow("SELECT id, nickname FROM administrators WHERE id = ?", administratorID).Scan(&administrator.ID, &administrator.Nickname)
-         .          .    233:	if err != nil {
-         .          .    234:		log.Fatal("db.QueryRow:", err)
+         0       50ms (flat, cum) 0.079% of Total
+         .          .    227:	err := db.QueryRow("SELECT id, nickname FROM users WHERE id = ?", userID).Scan(&user.ID, &user.Nickname)
+         .          .    228:	return &user, err
+         .          .    229:}
+         .          .    230:
+         .          .    231:func getLoginAdministrator(c echo.Context) (*Administrator, error) {
+         .       20ms    232:	administratorID := sessAdministratorID(c)
+         .          .    233:	if administratorID == 0 {
+         .          .    234:		return nil, errors.New("not logged in")
          .          .    235:	}
-         .          .    236:	return &administrator, err
-         .          .    237:}
+         .          .    236:	var administrator Administrator
+         .       30ms    237:	err := db.QueryRow("SELECT id, nickname FROM administrators WHERE id = ?", administratorID).Scan(&administrator.ID, &administrator.Nickname)
+         .          .    238:	if err != nil {
+         .          .    239:		log.Fatal("db.QueryRow:", err)
+         .          .    240:	}
+         .          .    241:	return &administrator, err
+         .          .    242:}
 ROUTINE ======================== main.getLoginUser in /home/isucon/isucon8q/webapp/go/src/torb/app.go
-      10ms      1.31s (flat, cum)  2.60% of Total
-         .          .    211:		}
-         .          .    212:		return next(c)
-         .          .    213:	}
-         .          .    214:}
-         .          .    215:
-      10ms       10ms    216:func getLoginUser(c echo.Context) (*User, error) {
-         .      420ms    217:	userID := sessUserID(c)
-         .          .    218:	if userID == 0 {
-         .          .    219:		return nil, errors.New("not logged in")
-         .          .    220:	}
-         .          .    221:	var user User
-         .      880ms    222:	err := db.QueryRow("SELECT id, nickname FROM users WHERE id = ?", userID).Scan(&user.ID, &user.Nickname)
-         .          .    223:	return &user, err
-         .          .    224:}
-         .          .    225:
-         .          .    226:func getLoginAdministrator(c echo.Context) (*Administrator, error) {
-         .          .    227:	administratorID := sessAdministratorID(c)
+         0      2.07s (flat, cum)  3.27% of Total
+         .          .    217:		return next(c)
+         .          .    218:	}
+         .          .    219:}
+         .          .    220:
+         .          .    221:func getLoginUser(c echo.Context) (*User, error) {
+         .      720ms    222:	userID := sessUserID(c)
+         .          .    223:	if userID == 0 {
+         .          .    224:		return nil, errors.New("not logged in")
+         .          .    225:	}
+         .          .    226:	var user User
+         .      1.35s    227:	err := db.QueryRow("SELECT id, nickname FROM users WHERE id = ?", userID).Scan(&user.ID, &user.Nickname)
+         .          .    228:	return &user, err
+         .          .    229:}
+         .          .    230:
+         .          .    231:func getLoginAdministrator(c echo.Context) (*Administrator, error) {
+         .          .    232:	administratorID := sessAdministratorID(c)
 ROUTINE ======================== main.getUserHandler in /home/isucon/isucon8q/webapp/go/src/torb/app.go
-      10ms      1.06s (flat, cum)  2.11% of Total
-         .          .    490:	}
-         .          .    491:	if user.ID != loginUser.ID {
-         .          .    492:		return resError(c, "forbidden", 403)
-         .          .    493:	}
-         .          .    494:
-         .       10ms    495:	rows, err := db.Query("SELECT r.*, s.rank AS sheet_rank, s.num AS sheet_num FROM reservations r INNER JOIN sheets s ON s.id = r.sheet_id WHERE r.user_id = ? ORDER BY IFNULL(r.canceled_at, r.reserved_at) DESC LIMIT 5", user.ID)
-         .          .    496:	if err != nil {
-         .          .    497:		return err
-         .          .    498:	}
-         .          .    499:	defer rows.Close()
-         .          .    500:
-         .          .    501:	var recentReservations []Reservation
-         .       30ms    502:	for rows.Next() {
-         .          .    503:		var reservation Reservation
-         .          .    504:		var sheet Sheet
-         .       10ms    505:		if err := rows.Scan(&reservation.ID, &reservation.EventID, &reservation.SheetID, &reservation.UserID, &reservation.ReservedAt, &reservation.CanceledAt, &sheet.Rank, &sheet.Num); err != nil {
-         .          .    506:			return err
-         .          .    507:		}
-         .          .    508:
-      10ms      420ms    509:		event, err := getEvent(reservation.EventID, -1)
-         .          .    510:		if err != nil {
+         0      620ms (flat, cum)  0.98% of Total
+         .          .    509:		var sheet Sheet
+         .          .    510:		if err := rows.Scan(&reservation.ID, &reservation.EventID, &reservation.SheetID, &reservation.UserID, &reservation.ReservedAt, &reservation.CanceledAt, &sheet.Rank, &sheet.Num); err != nil {
          .          .    511:			return err
          .          .    512:		}
-         .          .    513:		price := event.Sheets[sheet.Rank].Price
-         .          .    514:		event.Sheets = nil
-         .          .    515:		event.Total = 0
-         .          .    516:		event.Remains = 0
-         .          .    517:
-         .          .    518:		reservation.Event = event
-         .          .    519:		reservation.SheetRank = sheet.Rank
-         .          .    520:		reservation.SheetNum = sheet.Num
-         .          .    521:		reservation.Price = price
-         .          .    522:		reservation.ReservedAtUnix = reservation.ReservedAt.Unix()
-         .          .    523:		if reservation.CanceledAt != nil {
-         .          .    524:			reservation.CanceledAtUnix = reservation.CanceledAt.Unix()
-         .          .    525:		}
-         .          .    526:		recentReservations = append(recentReservations, reservation)
-         .          .    527:	}
-         .          .    528:	if recentReservations == nil {
-         .          .    529:		recentReservations = make([]Reservation, 0)
-         .          .    530:	}
-         .          .    531:
-         .          .    532:	var totalPrice int
-         .          .    533:	if err := db.QueryRow("SELECT IFNULL(SUM(e.price + s.price), 0) FROM reservations r INNER JOIN sheets s ON s.id = r.sheet_id INNER JOIN events e ON e.id = r.event_id WHERE r.user_id = ? AND r.canceled_at IS NULL", user.ID).Scan(&totalPrice); err != nil {
-         .          .    534:		return err
+         .          .    513:
+         .      290ms    514:		event, err := getEvent(reservation.EventID, -1)
+         .          .    515:		if err != nil {
+         .          .    516:			return err
+         .          .    517:		}
+         .          .    518:		price := event.Sheets[sheet.Rank].Price
+         .          .    519:		event.Sheets = nil
+         .          .    520:		event.Total = 0
+         .          .    521:		event.Remains = 0
+         .          .    522:
+         .          .    523:		reservation.Event = event
+         .          .    524:		reservation.SheetRank = sheet.Rank
+         .          .    525:		reservation.SheetNum = sheet.Num
+         .          .    526:		reservation.Price = price
+         .          .    527:		reservation.ReservedAtUnix = reservation.ReservedAt.Unix()
+         .          .    528:		if reservation.CanceledAt != nil {
+         .          .    529:			reservation.CanceledAtUnix = reservation.CanceledAt.Unix()
+         .          .    530:		}
+         .          .    531:		recentReservations = append(recentReservations, reservation)
+         .          .    532:	}
+         .          .    533:	if recentReservations == nil {
+         .          .    534:		recentReservations = make([]Reservation, 0)
          .          .    535:	}
          .          .    536:
-         .       20ms    537:	rows, err = db.Query("SELECT event_id FROM reservations WHERE user_id = ? GROUP BY event_id ORDER BY MAX(IFNULL(canceled_at, reserved_at)) DESC LIMIT 5", user.ID)
-         .          .    538:	if err != nil {
+         .          .    537:	var totalPrice int
+         .          .    538:	if err := db.QueryRow("SELECT IFNULL(SUM(e.price + s.price), 0) FROM reservations r INNER JOIN sheets s ON s.id = r.sheet_id INNER JOIN events e ON e.id = r.event_id WHERE r.user_id = ? AND r.canceled_at IS NULL", user.ID).Scan(&totalPrice); err != nil {
          .          .    539:		return err
          .          .    540:	}
-         .          .    541:	defer rows.Close()
-         .          .    542:
-         .          .    543:	var recentEvents []*Event
-         .          .    544:	for rows.Next() {
-         .          .    545:		var eventID int64
-         .          .    546:		if err := rows.Scan(&eventID); err != nil {
-         .          .    547:			return err
-         .          .    548:		}
-         .      520ms    549:		event, err := getEvent(eventID, -1)
-         .          .    550:		if err != nil {
-         .          .    551:			return err
-         .          .    552:		}
-         .          .    553:		for k := range event.Sheets {
-         .          .    554:			event.Sheets[k].Detail = nil
-         .          .    555:		}
-         .          .    556:		recentEvents = append(recentEvents, event)
-         .          .    557:	}
-         .          .    558:	if recentEvents == nil {
-         .          .    559:		recentEvents = make([]*Event, 0)
-         .          .    560:	}
-         .          .    561:
-         .       50ms    562:	return c.JSON(200, echo.Map{
-         .          .    563:		"id":                  user.ID,
-         .          .    564:		"nickname":            user.Nickname,
-         .          .    565:		"recent_reservations": recentReservations,
-         .          .    566:		"total_price":         totalPrice,
-         .          .    567:		"recent_events":       recentEvents,
-ROUTINE ======================== main.loginRequired in /home/isucon/isucon8q/webapp/go/src/torb/app.go
-         0       10ms (flat, cum)  0.02% of Total
-         .          .    194:	delete(sess.Values, "administrator_id")
-         .          .    195:	sess.Save(c.Request(), c.Response())
-         .          .    196:}
-         .          .    197:
-         .          .    198:func loginRequired(next echo.HandlerFunc) echo.HandlerFunc {
-         .       10ms    199:	return func(c echo.Context) error {
-         .          .    200:		if _, err := getLoginUser(c); err != nil {
-         .          .    201:			return resError(c, "login_required", 401)
-         .          .    202:		}
-         .          .    203:		return next(c)
-         .          .    204:	}
+         .          .    541:
+         .          .    542:	rows, err = db.Query("SELECT event_id FROM reservations WHERE user_id = ? GROUP BY event_id ORDER BY MAX(IFNULL(canceled_at, reserved_at)) DESC LIMIT 5", user.ID)
+         .          .    543:	if err != nil {
+         .          .    544:		return err
+         .          .    545:	}
+         .          .    546:	defer rows.Close()
+         .          .    547:
+         .          .    548:	var recentEvents []*Event
+         .       10ms    549:	for rows.Next() {
+         .          .    550:		var eventID int64
+         .          .    551:		if err := rows.Scan(&eventID); err != nil {
+         .          .    552:			return err
+         .          .    553:		}
+         .      320ms    554:		event, err := getEvent(eventID, -1)
+         .          .    555:		if err != nil {
+         .          .    556:			return err
+         .          .    557:		}
+         .          .    558:		for k := range event.Sheets {
+         .          .    559:			event.Sheets[k].Detail = nil
 ROUTINE ======================== main.loginRequired.func1 in /home/isucon/isucon8q/webapp/go/src/torb/app.go
-         0      3.79s (flat, cum)  7.54% of Total
-         .          .    195:	sess.Save(c.Request(), c.Response())
-         .          .    196:}
-         .          .    197:
-         .          .    198:func loginRequired(next echo.HandlerFunc) echo.HandlerFunc {
-         .          .    199:	return func(c echo.Context) error {
-         .      530ms    200:		if _, err := getLoginUser(c); err != nil {
-         .       10ms    201:			return resError(c, "login_required", 401)
-         .          .    202:		}
-         .      3.25s    203:		return next(c)
-         .          .    204:	}
-         .          .    205:}
-         .          .    206:
-         .          .    207:func adminLoginRequired(next echo.HandlerFunc) echo.HandlerFunc {
-         .          .    208:	return func(c echo.Context) error {
+         0      5.12s (flat, cum)  8.08% of Total
+         .          .    200:	sess.Save(c.Request(), c.Response())
+         .          .    201:}
+         .          .    202:
+         .          .    203:func loginRequired(next echo.HandlerFunc) echo.HandlerFunc {
+         .          .    204:	return func(c echo.Context) error {
+         .      870ms    205:		if _, err := getLoginUser(c); err != nil {
+         .          .    206:			return resError(c, "login_required", 401)
+         .          .    207:		}
+         .      4.25s    208:		return next(c)
+         .          .    209:	}
+         .          .    210:}
+         .          .    211:
+         .          .    212:func adminLoginRequired(next echo.HandlerFunc) echo.HandlerFunc {
+         .          .    213:	return func(c echo.Context) error {
 ROUTINE ======================== main.main in /home/isucon/isucon8q/webapp/go/src/torb/app.go
-         0      300ms (flat, cum)   0.6% of Total
-         .          .   1079:	e.GET("/admin/api/events/:id", getAdminEventHandler, adminLoginRequired)
-         .          .   1080:	e.POST("/admin/api/events/:id/actions/edit", postAdminEditEventHandler, adminLoginRequired)
-         .          .   1081:	e.GET("/admin/api/reports/events/:id/sales", getAdminReportsEventHandler, adminLoginRequired)
-         .          .   1082:	e.GET("/admin/api/reports/sales", getAdminReportsHandler, adminLoginRequired)
-         .          .   1083:
-         .      300ms   1084:	e.Start(":8080")
-         .          .   1085:}
-         .          .   1086:
-         .          .   1087:type Report struct {
-         .          .   1088:	ReservationID int64
-         .          .   1089:	EventID       int64
+         0      330ms (flat, cum)  0.52% of Total
+         .          .   1084:	e.GET("/admin/api/events/:id", getAdminEventHandler, adminLoginRequired)
+         .          .   1085:	e.POST("/admin/api/events/:id/actions/edit", postAdminEditEventHandler, adminLoginRequired)
+         .          .   1086:	e.GET("/admin/api/reports/events/:id/sales", getAdminReportsEventHandler, adminLoginRequired)
+         .          .   1087:	e.GET("/admin/api/reports/sales", getAdminReportsHandler, adminLoginRequired)
+         .          .   1088:
+         .      330ms   1089:	e.Start(":8080")
+         .          .   1090:}
+         .          .   1091:
+         .          .   1092:type Report struct {
+         .          .   1093:	ReservationID int64
+         .          .   1094:	EventID       int64
 ROUTINE ======================== main.main.func1 in /home/isucon/isucon8q/webapp/go/src/torb/app.go
-         0      180ms (flat, cum)  0.36% of Total
-         .          .   1042:	mainInit()
-         .          .   1043:
-         .          .   1044:	e := echo.New()
-         .          .   1045:	funcs := template.FuncMap{
-         .          .   1046:		"encode_json": func(v interface{}) string {
-         .      180ms   1047:			b, _ := json.Marshal(v)
-         .          .   1048:			return string(b)
-         .          .   1049:		},
-         .          .   1050:	}
-         .          .   1051:	e.Renderer = &Renderer{
-         .          .   1052:		templates: template.Must(template.New("").Delims("[[", "]]").Funcs(funcs).ParseGlob("views/*.tmpl")),
+         0      240ms (flat, cum)  0.38% of Total
+         .          .   1047:	mainInit()
+         .          .   1048:
+         .          .   1049:	e := echo.New()
+         .          .   1050:	funcs := template.FuncMap{
+         .          .   1051:		"encode_json": func(v interface{}) string {
+         .      240ms   1052:			b, _ := json.Marshal(v)
+         .          .   1053:			return string(b)
+         .          .   1054:		},
+         .          .   1055:	}
+         .          .   1056:	e.Renderer = &Renderer{
+         .          .   1057:		templates: template.Must(template.New("").Delims("[[", "]]").Funcs(funcs).ParseGlob("views/*.tmpl")),
 ROUTINE ======================== main.postAdminEditEventHandler in /home/isucon/isucon8q/webapp/go/src/torb/app.go
-         0       40ms (flat, cum)  0.08% of Total
-         .          .    906:	c.Bind(&params)
-         .          .    907:	if params.Closed {
-         .          .    908:		params.Public = false
-         .          .    909:	}
-         .          .    910:
-         .       10ms    911:	event, err := getEvent(eventID, -1)
-         .          .    912:	if err != nil {
-         .          .    913:		if err == sql.ErrNoRows {
-         .          .    914:			return resError(c, "not_found", 404)
-         .          .    915:		}
-         .          .    916:		return err
-         .          .    917:	}
-         .          .    918:
-         .          .    919:	if event.ClosedFg {
-         .          .    920:		return resError(c, "cannot_edit_closed_event", 400)
-         .          .    921:	} else if event.PublicFg && params.Closed {
-         .          .    922:		return resError(c, "cannot_close_public_event", 400)
-         .          .    923:	}
-         .          .    924:
-         .          .    925:	tx, err := db.Begin()
-         .          .    926:	if err != nil {
-         .          .    927:		return err
+         0       50ms (flat, cum) 0.079% of Total
+         .          .    911:	c.Bind(&params)
+         .          .    912:	if params.Closed {
+         .          .    913:		params.Public = false
+         .          .    914:	}
+         .          .    915:
+         .       10ms    916:	event, err := getEvent(eventID, -1)
+         .          .    917:	if err != nil {
+         .          .    918:		if err == sql.ErrNoRows {
+         .          .    919:			return resError(c, "not_found", 404)
+         .          .    920:		}
+         .          .    921:		return err
+         .          .    922:	}
+         .          .    923:
+         .          .    924:	if event.ClosedFg {
+         .          .    925:		return resError(c, "cannot_edit_closed_event", 400)
+         .          .    926:	} else if event.PublicFg && params.Closed {
+         .          .    927:		return resError(c, "cannot_close_public_event", 400)
          .          .    928:	}
-         .          .    929:	if _, err := tx.Exec("UPDATE events SET public_fg = ?, closed_fg = ? WHERE id = ?", params.Public, params.Closed, event.ID); err != nil {
-         .          .    930:		tx.Rollback()
-         .          .    931:		return err
-         .          .    932:	}
-         .          .    933:	if err := tx.Commit(); err != nil {
-         .          .    934:		return err
-         .          .    935:	}
-         .          .    936:
-         .       10ms    937:	e, err := getEvent(eventID, -1)
-         .          .    938:	if err != nil {
+         .          .    929:
+         .          .    930:	tx, err := db.Begin()
+         .          .    931:	if err != nil {
+         .          .    932:		return err
+         .          .    933:	}
+         .          .    934:	if _, err := tx.Exec("UPDATE events SET public_fg = ?, closed_fg = ? WHERE id = ?", params.Public, params.Closed, event.ID); err != nil {
+         .          .    935:		tx.Rollback()
+         .          .    936:		return err
+         .          .    937:	}
+         .          .    938:	if err := tx.Commit(); err != nil {
          .          .    939:		return err
          .          .    940:	}
-         .       20ms    941:	c.JSON(200, e)
-         .          .    942:	return nil
-         .          .    943:
-         .          .    944:}
-         .          .    945:
-         .          .    946:func getAdminReportsEventHandler(c echo.Context) error {
+         .          .    941:
+         .       10ms    942:	e, err := getEvent(eventID, -1)
+         .          .    943:	if err != nil {
+         .          .    944:		return err
+         .          .    945:	}
+         .       30ms    946:	c.JSON(200, e)
+         .          .    947:	return nil
+         .          .    948:
+         .          .    949:}
+         .          .    950:
+         .          .    951:func getAdminReportsEventHandler(c echo.Context) error {
 ROUTINE ======================== main.postAdminEventsHandler in /home/isucon/isucon8q/webapp/go/src/torb/app.go
-         0       10ms (flat, cum)  0.02% of Total
-         .          .    873:
-         .          .    874:	event, err := getEvent(eventID, -1)
-         .          .    875:	if err != nil {
-         .          .    876:		return err
-         .          .    877:	}
-         .       10ms    878:	return c.JSON(200, event)
-         .          .    879:}
-         .          .    880:
-         .          .    881:func getAdminEventHandler(c echo.Context) error {
-         .          .    882:	eventID, err := strconv.ParseInt(c.Param("id"), 10, 64)
-         .          .    883:	if err != nil {
+         0       20ms (flat, cum) 0.032% of Total
+         .          .    878:
+         .          .    879:	event, err := getEvent(eventID, -1)
+         .          .    880:	if err != nil {
+         .          .    881:		return err
+         .          .    882:	}
+         .       20ms    883:	return c.JSON(200, event)
+         .          .    884:}
+         .          .    885:
+         .          .    886:func getAdminEventHandler(c echo.Context) error {
+         .          .    887:	eventID, err := strconv.ParseInt(c.Param("id"), 10, 64)
+         .          .    888:	if err != nil {
+ROUTINE ======================== main.postAdminLoginHandler in /home/isucon/isucon8q/webapp/go/src/torb/app.go
+         0       10ms (flat, cum) 0.016% of Total
+         .          .    811:		Password  string `json:"password"`
+         .          .    812:	}
+         .          .    813:	c.Bind(&params)
+         .          .    814:
+         .          .    815:	administrator := new(Administrator)
+         .       10ms    816:	if err := db.QueryRow("SELECT * FROM administrators WHERE login_name = ?", params.LoginName).Scan(&administrator.ID, &administrator.LoginName, &administrator.Nickname, &administrator.PassHash); err != nil {
+         .          .    817:		if err == sql.ErrNoRows {
+         .          .    818:			return resError(c, "authentication_failed", 401)
+         .          .    819:		}
+         .          .    820:		return err
+         .          .    821:	}
 ROUTINE ======================== main.postLoginHandler in /home/isucon/isucon8q/webapp/go/src/torb/app.go
-         0      820ms (flat, cum)  1.63% of Total
-         .          .    572:func postLoginHandler(c echo.Context) error {
-         .          .    573:	var params struct {
-         .          .    574:		LoginName string `json:"login_name"`
-         .          .    575:		Password  string `json:"password"`
-         .          .    576:	}
-         .       70ms    577:	c.Bind(&params)
-         .          .    578:
-         .          .    579:	user := new(User)
-         .      290ms    580:	if err := db.QueryRow("SELECT * FROM users WHERE login_name = ?", params.LoginName).Scan(&user.ID, &user.LoginName, &user.Nickname, &user.PassHash); err != nil {
-         .          .    581:		if err == sql.ErrNoRows {
-         .          .    582:			return resError(c, "authentication_failed", 401)
-         .          .    583:		}
-         .          .    584:		return err
-         .          .    585:	}
-         .          .    586:
-         .          .    587:	var passHash string
-         .      150ms    588:	if err := db.QueryRow("SELECT SHA2(?, 256)", params.Password).Scan(&passHash); err != nil {
+         0      910ms (flat, cum)  1.44% of Total
+         .          .    577:func postLoginHandler(c echo.Context) error {
+         .          .    578:	var params struct {
+         .          .    579:		LoginName string `json:"login_name"`
+         .          .    580:		Password  string `json:"password"`
+         .          .    581:	}
+         .       30ms    582:	c.Bind(&params)
+         .          .    583:
+         .          .    584:	user := new(User)
+         .      290ms    585:	if err := db.QueryRow("SELECT * FROM users WHERE login_name = ?", params.LoginName).Scan(&user.ID, &user.LoginName, &user.Nickname, &user.PassHash); err != nil {
+         .          .    586:		if err == sql.ErrNoRows {
+         .          .    587:			return resError(c, "authentication_failed", 401)
+         .          .    588:		}
          .          .    589:		return err
          .          .    590:	}
-         .          .    591:	if user.PassHash != passHash {
-         .          .    592:		return resError(c, "authentication_failed", 401)
-         .          .    593:	}
-         .          .    594:
-         .       90ms    595:	sessSetUserID(c, user.ID)
-         .      190ms    596:	user, err := getLoginUser(c)
-         .          .    597:	if err != nil {
-         .          .    598:		return err
-         .          .    599:	}
-         .       30ms    600:	return c.JSON(200, user)
-         .          .    601:}
-         .          .    602:
-         .          .    603:func postLogoutHandler(c echo.Context) error {
-         .          .    604:	sessDeleteUserID(c)
-         .          .    605:	return c.NoContent(204)
+         .          .    591:
+         .          .    592:	var passHash string
+         .      220ms    593:	if err := db.QueryRow("SELECT SHA2(?, 256)", params.Password).Scan(&passHash); err != nil {
+         .          .    594:		return err
+         .          .    595:	}
+         .          .    596:	if user.PassHash != passHash {
+         .          .    597:		return resError(c, "authentication_failed", 401)
+         .          .    598:	}
+         .          .    599:
+         .      100ms    600:	sessSetUserID(c, user.ID)
+         .      220ms    601:	user, err := getLoginUser(c)
+         .          .    602:	if err != nil {
+         .          .    603:		return err
+         .          .    604:	}
+         .       50ms    605:	return c.JSON(200, user)
+         .          .    606:}
+         .          .    607:
+         .          .    608:func postLogoutHandler(c echo.Context) error {
+         .          .    609:	sessDeleteUserID(c)
+         .          .    610:	return c.NoContent(204)
 ROUTINE ======================== main.postReserveHandler in /home/isucon/isucon8q/webapp/go/src/torb/app.go
-         0      1.70s (flat, cum)  3.38% of Total
-         .          .    643:		return resError(c, "not_found", 404)
-         .          .    644:	}
-         .          .    645:	var params struct {
-         .          .    646:		Rank string `json:"sheet_rank"`
-         .          .    647:	}
-         .       20ms    648:	c.Bind(&params)
-         .          .    649:
-         .      130ms    650:	user, err := getLoginUser(c)
-         .          .    651:	if err != nil {
-         .          .    652:		log.Println("failed to get login user:", err)
-         .          .    653:		return err
-         .          .    654:	}
-         .          .    655:
-         .      1.16s    656:	event, err := getEvent(eventID, user.ID)
-         .          .    657:	if err != nil {
-         .          .    658:		if err == sql.ErrNoRows {
-         .          .    659:			return resError(c, "invalid_event", 404)
-         .          .    660:		}
-         .          .    661:		return err
-         .          .    662:	} else if !event.PublicFg {
-         .          .    663:		return resError(c, "invalid_event", 404)
-         .          .    664:	}
-         .          .    665:
-         .       90ms    666:	if !validateRank(params.Rank) {
-         .          .    667:		return resError(c, "invalid_rank", 400)
-         .          .    668:	}
-         .          .    669:
-         .          .    670:	var sheet Sheet
-         .          .    671:	var reservationID int64
-         .          .    672:	for {
-         .       30ms    673:		tx, err := db.Begin()
-         .       80ms    674:		if err := tx.QueryRow("SELECT * FROM sheets WHERE id NOT IN (SELECT sheet_id FROM reservations WHERE event_id = ? AND canceled_at IS NULL FOR UPDATE) AND `rank` = ? ORDER BY RAND() LIMIT 1", event.ID, params.Rank).Scan(&sheet.ID, &sheet.Rank, &sheet.Num, &sheet.Price); err != nil {
-         .          .    675:			tx.Rollback()
-         .          .    676:			if err == sql.ErrNoRows {
-         .          .    677:				return resError(c, "sold_out", 409)
-         .          .    678:			}
-         .          .    679:			log.Println("re-try: rollback by", err)
-         .          .    680:			continue
-         .          .    681:		}
-         .          .    682:
-         .          .    683:		t := time.Now()
-         .      120ms    684:		res, err := tx.Exec("INSERT INTO reservations (event_id, sheet_id, user_id, reserved_at) VALUES (?, ?, ?, ?)", event.ID, sheet.ID, user.ID, t.UTC().Format("2006-01-02 15:04:05.000000"))
-         .          .    685:		if err != nil {
-         .          .    686:			tx.Rollback()
-         .          .    687:			log.Println("re-try: rollback by", err)
-         .          .    688:			continue
-         .          .    689:		}
-         .          .    690:		reservationID, err = res.LastInsertId()
-         .          .    691:		if err != nil {
-         .          .    692:			tx.Rollback()
-         .          .    693:			log.Println("re-try: rollback by", err)
-         .          .    694:			continue
-         .          .    695:		}
-         .          .    696:
-         .          .    697:		eventSheetCache.Set(event.ID, sheet.ID, EventSheetReservation{user.ID, t})
-         .       30ms    698:		if err := tx.Commit(); err != nil {
-         .          .    699:			tx.Rollback()
-         .          .    700:			log.Println("re-try: rollback by", err)
-         .          .    701:			continue
-         .          .    702:		}
-         .          .    703:		break
-         .          .    704:	}
-         .       40ms    705:	return c.JSON(202, echo.Map{
-         .          .    706:		"id":         reservationID,
-         .          .    707:		"sheet_rank": params.Rank,
-         .          .    708:		"sheet_num":  sheet.Num,
-         .          .    709:	})
-         .          .    710:}
+         0      2.66s (flat, cum)  4.20% of Total
+         .          .    648:		return resError(c, "not_found", 404)
+         .          .    649:	}
+         .          .    650:	var params struct {
+         .          .    651:		Rank string `json:"sheet_rank"`
+         .          .    652:	}
+         .       40ms    653:	c.Bind(&params)
+         .          .    654:
+         .      140ms    655:	user, err := getLoginUser(c)
+         .          .    656:	if err != nil {
+         .          .    657:		log.Println("failed to get login user:", err)
+         .          .    658:		return err
+         .          .    659:	}
+         .          .    660:
+         .      1.78s    661:	event, err := getEvent(eventID, user.ID)
+         .          .    662:	if err != nil {
+         .          .    663:		if err == sql.ErrNoRows {
+         .          .    664:			return resError(c, "invalid_event", 404)
+         .          .    665:		}
+         .          .    666:		return err
+         .          .    667:	} else if !event.PublicFg {
+         .          .    668:		return resError(c, "invalid_event", 404)
+         .          .    669:	}
+         .          .    670:
+         .      160ms    671:	if !validateRank(params.Rank) {
+         .          .    672:		return resError(c, "invalid_rank", 400)
+         .          .    673:	}
+         .          .    674:
+         .          .    675:	var sheet Sheet
+         .          .    676:	var reservationID int64
+         .          .    677:	for {
+         .       70ms    678:		tx, err := db.Begin()
+         .      240ms    679:		if err := tx.QueryRow("SELECT * FROM sheets WHERE id NOT IN (SELECT sheet_id FROM reservations WHERE event_id = ? AND canceled_at IS NULL FOR UPDATE) AND `rank` = ? ORDER BY RAND() LIMIT 1", event.ID, params.Rank).Scan(&sheet.ID, &sheet.Rank, &sheet.Num, &sheet.Price); err != nil {
+         .          .    680:			tx.Rollback()
+         .          .    681:			if err == sql.ErrNoRows {
+         .          .    682:				return resError(c, "sold_out", 409)
+         .          .    683:			}
+         .          .    684:			log.Println("re-try: rollback by", err)
+         .          .    685:			continue
+         .          .    686:		}
+         .          .    687:
+         .          .    688:		t := time.Now()
+         .      150ms    689:		res, err := tx.Exec("INSERT INTO reservations (event_id, sheet_id, user_id, reserved_at) VALUES (?, ?, ?, ?)", event.ID, sheet.ID, user.ID, t.UTC().Format("2006-01-02 15:04:05.000000"))
+         .          .    690:		if err != nil {
+         .          .    691:			tx.Rollback()
+         .          .    692:			log.Println("re-try: rollback by", err)
+         .          .    693:			continue
+         .          .    694:		}
+         .          .    695:		reservationID, err = res.LastInsertId()
+         .          .    696:		if err != nil {
+         .          .    697:			tx.Rollback()
+         .          .    698:			log.Println("re-try: rollback by", err)
+         .          .    699:			continue
+         .          .    700:		}
+         .          .    701:
+         .          .    702:		eventSheetCache.Set(event.ID, sheet.ID, EventSheetReservation{user.ID, t})
+         .       30ms    703:		if err := tx.Commit(); err != nil {
+         .          .    704:			tx.Rollback()
+         .          .    705:			log.Println("re-try: rollback by", err)
+         .          .    706:			continue
+         .          .    707:		}
+         .          .    708:		break
+         .          .    709:	}
+         .       40ms    710:	return c.JSON(202, echo.Map{
+         .       10ms    711:		"id":         reservationID,
+         .          .    712:		"sheet_rank": params.Rank,
+         .          .    713:		"sheet_num":  sheet.Num,
+         .          .    714:	})
+         .          .    715:}
+         .          .    716:func deleteReservationHandler(c echo.Context) error {
 ROUTINE ======================== main.postUsersHandler in /home/isucon/isucon8q/webapp/go/src/torb/app.go
-         0       30ms (flat, cum)  0.06% of Total
-         .          .    443:		LoginName string `json:"login_name"`
-         .          .    444:		Password  string `json:"password"`
-         .          .    445:	}
-         .          .    446:	c.Bind(&params)
-         .          .    447:
-         .       20ms    448:	tx, err := db.Begin()
-         .          .    449:	if err != nil {
-         .          .    450:		return err
-         .          .    451:	}
-         .          .    452:
-         .          .    453:	var user User
-         .          .    454:	if err := tx.QueryRow("SELECT * FROM users WHERE login_name = ?", params.LoginName).Scan(&user.ID, &user.LoginName, &user.Nickname, &user.PassHash); err != sql.ErrNoRows {
-         .          .    455:		tx.Rollback()
-         .          .    456:		if err == nil {
-         .          .    457:			return resError(c, "duplicated", 409)
-         .          .    458:		}
-         .          .    459:		return err
-         .          .    460:	}
-         .          .    461:
-         .          .    462:	res, err := tx.Exec("INSERT INTO users (login_name, pass_hash, nickname) VALUES (?, SHA2(?, 256), ?)", params.LoginName, params.Password, params.Nickname)
-         .          .    463:	if err != nil {
-         .          .    464:		tx.Rollback()
-         .          .    465:		return resError(c, "", 0)
-         .          .    466:	}
-         .          .    467:	userID, err := res.LastInsertId()
+         0       30ms (flat, cum) 0.047% of Total
+         .          .    454:	if err != nil {
+         .          .    455:		return err
+         .          .    456:	}
+         .          .    457:
+         .          .    458:	var user User
+         .       10ms    459:	if err := tx.QueryRow("SELECT * FROM users WHERE login_name = ?", params.LoginName).Scan(&user.ID, &user.LoginName, &user.Nickname, &user.PassHash); err != sql.ErrNoRows {
+         .       10ms    460:		tx.Rollback()
+         .          .    461:		if err == nil {
+         .          .    462:			return resError(c, "duplicated", 409)
+         .          .    463:		}
+         .          .    464:		return err
+         .          .    465:	}
+         .          .    466:
+         .       10ms    467:	res, err := tx.Exec("INSERT INTO users (login_name, pass_hash, nickname) VALUES (?, SHA2(?, 256), ?)", params.LoginName, params.Password, params.Nickname)
          .          .    468:	if err != nil {
          .          .    469:		tx.Rollback()
          .          .    470:		return resError(c, "", 0)
          .          .    471:	}
-         .       10ms    472:	if err := tx.Commit(); err != nil {
-         .          .    473:		return err
-         .          .    474:	}
-         .          .    475:
-         .          .    476:	return c.JSON(201, echo.Map{
-         .          .    477:		"id":       userID,
+         .          .    472:	userID, err := res.LastInsertId()
 ROUTINE ======================== main.renderReportCSV in /home/isucon/isucon8q/webapp/go/src/torb/app.go
-      80ms      4.09s (flat, cum)  8.13% of Total
-         .          .   1094:	CanceledAt    string
-         .          .   1095:	Price         int64
-         .          .   1096:}
-         .          .   1097:
-         .          .   1098:func renderReportCSV(c echo.Context, reports []Report) error {
-         .      930ms   1099:	sort.Slice(reports, func(i, j int) bool { return strings.Compare(reports[i].SoldAt, reports[j].SoldAt) < 0 })
-         .          .   1100:
-         .          .   1101:	body := bytes.NewBufferString("reservation_id,event_id,rank,num,price,user_id,sold_at,canceled_at\n")
-      20ms       90ms   1102:	for _, v := range reports {
-         .      2.21s   1103:		body.WriteString(fmt.Sprintf("%d,%d,%s,%d,%d,%d,%s,%s\n",
-      60ms      780ms   1104:			v.ReservationID, v.EventID, v.Rank, v.Num, v.Price, v.UserID, v.SoldAt, v.CanceledAt))
-         .          .   1105:	}
-         .          .   1106:
-         .          .   1107:	c.Response().Header().Set("Content-Type", `text/csv; charset=UTF-8`)
-         .          .   1108:	c.Response().Header().Set("Content-Disposition", `attachment; filename="report.csv"`)
-         .       80ms   1109:	_, err := io.Copy(c.Response(), body)
-         .          .   1110:	return err
-         .          .   1111:}
-         .          .   1112:
-         .          .   1113:func resError(c echo.Context, e string, status int) error {
-         .          .   1114:	if e == "" {
+     100ms      4.76s (flat, cum)  7.51% of Total
+         .          .   1099:	CanceledAt    string
+         .          .   1100:	Price         int64
+         .          .   1101:}
+         .          .   1102:
+         .          .   1103:func renderReportCSV(c echo.Context, reports []Report) error {
+         .      930ms   1104:	sort.Slice(reports, func(i, j int) bool { return strings.Compare(reports[i].SoldAt, reports[j].SoldAt) < 0 })
+         .          .   1105:
+         .          .   1106:	body := bytes.NewBufferString("reservation_id,event_id,rank,num,price,user_id,sold_at,canceled_at\n")
+         .      100ms   1107:	for _, v := range reports {
+         .      2.57s   1108:		body.WriteString(fmt.Sprintf("%d,%d,%s,%d,%d,%d,%s,%s\n",
+     100ms      1.05s   1109:			v.ReservationID, v.EventID, v.Rank, v.Num, v.Price, v.UserID, v.SoldAt, v.CanceledAt))
+         .          .   1110:	}
+         .          .   1111:
+         .          .   1112:	c.Response().Header().Set("Content-Type", `text/csv; charset=UTF-8`)
+         .          .   1113:	c.Response().Header().Set("Content-Disposition", `attachment; filename="report.csv"`)
+         .      110ms   1114:	_, err := io.Copy(c.Response(), body)
+         .          .   1115:	return err
+         .          .   1116:}
+         .          .   1117:
+         .          .   1118:func resError(c echo.Context, e string, status int) error {
+         .          .   1119:	if e == "" {
 ROUTINE ======================== main.renderReportCSV.func1 in /home/isucon/isucon8q/webapp/go/src/torb/app.go
-     150ms      150ms (flat, cum)   0.3% of Total
-         .          .   1094:	CanceledAt    string
-         .          .   1095:	Price         int64
-         .          .   1096:}
-         .          .   1097:
-         .          .   1098:func renderReportCSV(c echo.Context, reports []Report) error {
-     150ms      150ms   1099:	sort.Slice(reports, func(i, j int) bool { return strings.Compare(reports[i].SoldAt, reports[j].SoldAt) < 0 })
-         .          .   1100:
-         .          .   1101:	body := bytes.NewBufferString("reservation_id,event_id,rank,num,price,user_id,sold_at,canceled_at\n")
-         .          .   1102:	for _, v := range reports {
-         .          .   1103:		body.WriteString(fmt.Sprintf("%d,%d,%s,%d,%d,%d,%s,%s\n",
-         .          .   1104:			v.ReservationID, v.EventID, v.Rank, v.Num, v.Price, v.UserID, v.SoldAt, v.CanceledAt))
+     160ms      160ms (flat, cum)  0.25% of Total
+         .          .   1099:	CanceledAt    string
+         .          .   1100:	Price         int64
+         .          .   1101:}
+         .          .   1102:
+         .          .   1103:func renderReportCSV(c echo.Context, reports []Report) error {
+     160ms      160ms   1104:	sort.Slice(reports, func(i, j int) bool { return strings.Compare(reports[i].SoldAt, reports[j].SoldAt) < 0 })
+         .          .   1105:
+         .          .   1106:	body := bytes.NewBufferString("reservation_id,event_id,rank,num,price,user_id,sold_at,canceled_at\n")
+         .          .   1107:	for _, v := range reports {
+         .          .   1108:		body.WriteString(fmt.Sprintf("%d,%d,%s,%d,%d,%d,%s,%s\n",
+         .          .   1109:			v.ReservationID, v.EventID, v.Rank, v.Num, v.Price, v.UserID, v.SoldAt, v.CanceledAt))
 ROUTINE ======================== main.renderReportCSV.func1 in /home/isucon/local/go/src/strings/compare.go
-     110ms      610ms (flat, cum)  1.21% of Total
+     140ms      620ms (flat, cum)  0.98% of Total
          .          .     16:	// using strings.Compare. Basically no one should use strings.Compare.
          .          .     17:	// As the comment above says, it is here only for symmetry with package bytes.
          .          .     18:	// If performance is important, the compiler should be changed to recognize
          .          .     19:	// the pattern so that all code doing three-way comparisons, not just code
          .          .     20:	// using strings.Compare, can benefit.
-      30ms      280ms     21:	if a == b {
+      60ms      370ms     21:	if a == b {
          .          .     22:		return 0
          .          .     23:	}
-      80ms      330ms     24:	if a < b {
+      80ms      250ms     24:	if a < b {
          .          .     25:		return -1
          .          .     26:	}
          .          .     27:	return +1
          .          .     28:}
-ROUTINE ======================== main.resError in /home/isucon/isucon8q/webapp/go/src/torb/app.go
-         0       10ms (flat, cum)  0.02% of Total
-         .          .   1115:		e = "unknown"
-         .          .   1116:	}
-         .          .   1117:	if status < 100 {
-         .          .   1118:		status = 500
-         .          .   1119:	}
-         .       10ms   1120:	return c.JSON(status, map[string]string{"error": e})
-         .          .   1121:}
 ROUTINE ======================== main.sessAdministratorID in /home/isucon/isucon8q/webapp/go/src/torb/app.go
-         0       20ms (flat, cum)  0.04% of Total
-         .          .    163:	delete(sess.Values, "user_id")
-         .          .    164:	sess.Save(c.Request(), c.Response())
-         .          .    165:}
-         .          .    166:
-         .          .    167:func sessAdministratorID(c echo.Context) int64 {
-         .       20ms    168:	sess, _ := session.Get("session", c)
-         .          .    169:	var administratorID int64
-         .          .    170:	if x, ok := sess.Values["administrator_id"]; ok {
-         .          .    171:		administratorID, _ = x.(int64)
-         .          .    172:	}
-         .          .    173:	return administratorID
+         0       20ms (flat, cum) 0.032% of Total
+         .          .    168:	delete(sess.Values, "user_id")
+         .          .    169:	sess.Save(c.Request(), c.Response())
+         .          .    170:}
+         .          .    171:
+         .          .    172:func sessAdministratorID(c echo.Context) int64 {
+         .       20ms    173:	sess, _ := session.Get("session", c)
+         .          .    174:	var administratorID int64
+         .          .    175:	if x, ok := sess.Values["administrator_id"]; ok {
+         .          .    176:		administratorID, _ = x.(int64)
+         .          .    177:	}
+         .          .    178:	return administratorID
 ROUTINE ======================== main.sessSetUserID in /home/isucon/isucon8q/webapp/go/src/torb/app.go
-         0       90ms (flat, cum)  0.18% of Total
-         .          .    148:		Path:     "/",
-         .          .    149:		MaxAge:   3600,
-         .          .    150:		HttpOnly: true,
-         .          .    151:	}
-         .          .    152:	sess.Values["user_id"] = id
-         .       90ms    153:	sess.Save(c.Request(), c.Response())
-         .          .    154:}
-         .          .    155:
-         .          .    156:func sessDeleteUserID(c echo.Context) {
-         .          .    157:	sess, _ := session.Get("session", c)
-         .          .    158:	sess.Options = &sessions.Options{
+         0      100ms (flat, cum)  0.16% of Total
+         .          .    152:	sess.Options = &sessions.Options{
+         .          .    153:		Path:     "/",
+         .          .    154:		MaxAge:   3600,
+         .          .    155:		HttpOnly: true,
+         .          .    156:	}
+         .       10ms    157:	sess.Values["user_id"] = id
+         .       90ms    158:	sess.Save(c.Request(), c.Response())
+         .          .    159:}
+         .          .    160:
+         .          .    161:func sessDeleteUserID(c echo.Context) {
+         .          .    162:	sess, _ := session.Get("session", c)
+         .          .    163:	sess.Options = &sessions.Options{
 ROUTINE ======================== main.sessUserID in /home/isucon/isucon8q/webapp/go/src/torb/app.go
-         0      420ms (flat, cum)  0.84% of Total
-         .          .    132:}
-         .          .    133:
-         .          .    134:var eventSheetCache EventSheetReservationCache
-         .          .    135:
-         .          .    136:func sessUserID(c echo.Context) int64 {
-         .      420ms    137:	sess, _ := session.Get("session", c)
-         .          .    138:	var userID int64
-         .          .    139:	if x, ok := sess.Values["user_id"]; ok {
-         .          .    140:		userID, _ = x.(int64)
-         .          .    141:	}
-         .          .    142:	return userID
+         0      720ms (flat, cum)  1.14% of Total
+         .          .    137:}
+         .          .    138:
+         .          .    139:var eventSheetCache EventSheetReservationCache
+         .          .    140:
+         .          .    141:func sessUserID(c echo.Context) int64 {
+         .      720ms    142:	sess, _ := session.Get("session", c)
+         .          .    143:	var userID int64
+         .          .    144:	if x, ok := sess.Values["user_id"]; ok {
+         .          .    145:		userID, _ = x.(int64)
+         .          .    146:	}
+         .          .    147:	return userID
 ROUTINE ======================== main.validateRank in /home/isucon/isucon8q/webapp/go/src/torb/app.go
-         0      100ms (flat, cum)   0.2% of Total
-         .          .    335:	}
-         .          .    336:}
-         .          .    337:
-         .          .    338:func validateRank(rank string) bool {
-         .          .    339:	var count int
-         .      100ms    340:	db.QueryRow("SELECT COUNT(*) FROM sheets WHERE `rank` = ?", rank).Scan(&count)
-         .          .    341:	return count > 0
-         .          .    342:}
-         .          .    343:
-         .          .    344:type Renderer struct {
-         .          .    345:	templates *template.Template
-ROUTINE ======================== net/http.requestBodyRemains in /home/isucon/local/go/src/net/http/server.go
-      10ms       10ms (flat, cum)  0.02% of Total
-         .          .   1928:	}
-         .          .   1929:	switch v := rc.(type) {
-         .          .   1930:	case *expectContinueReader:
-         .          .   1931:		return requestBodyRemains(v.readCloser)
-         .          .   1932:	case *body:
-      10ms       10ms   1933:		return v.bodyRemains()
-         .          .   1934:	default:
-         .          .   1935:		panic("unexpected type " + fmt.Sprintf("%T", rc))
-         .          .   1936:	}
-         .          .   1937:}
-         .          .   1938:
+         0      230ms (flat, cum)  0.36% of Total
+         .          .    340:	}
+         .          .    341:}
+         .          .    342:
+         .          .    343:func validateRank(rank string) bool {
+         .          .    344:	var count int
+         .      230ms    345:	db.QueryRow("SELECT COUNT(*) FROM sheets WHERE `rank` = ?", rank).Scan(&count)
+         .          .    346:	return count > 0
+         .          .    347:}
+         .          .    348:
+         .          .    349:type Renderer struct {
+         .          .    350:	templates *template.Template
 ROUTINE ======================== runtime.main in /home/isucon/local/go/src/runtime/proc.go
-         0      300ms (flat, cum)   0.6% of Total
+         0      330ms (flat, cum)  0.52% of Total
          .          .    193:		// A program compiled with -buildmode=c-archive or c-shared
          .          .    194:		// has a main, but it is not executed.
          .          .    195:		return
          .          .    196:	}
          .          .    197:	fn = main_main // make an indirect call, as the linker doesn't know the address of the main package when laying down the runtime
-         .      300ms    198:	fn()
+         .      330ms    198:	fn()
          .          .    199:	if raceenabled {
          .          .    200:		racefini()
          .          .    201:	}
