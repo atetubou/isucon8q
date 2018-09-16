@@ -12,6 +12,7 @@ rm -rf ~/torb/webapp/go/torb
 cp webapp/go/torb ~/torb/webapp/go/torb
 # rsync -av webapp/public/ ~/torb/webapp/public/
 cp webapp/env.sh ~/torb/webapp/env.sh
+rsync -av db/ ~/torb/db
 
 #(
 #    source env.sh;
