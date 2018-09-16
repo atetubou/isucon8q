@@ -9,9 +9,9 @@ import mysql.connector
 app = Flask(__name__)
 dbconfig = {
     "database" : 'profile',
-    "user" : os.environ['ISU_DB_USER'],
-    "password" : os.environ['ISU_DB_PASSWORD'],
-    "host" : os.environ['ISU_DB_HOST'],  
+    "user" : os.environ['DB_USER'],
+    "password" : os.environ['DB_PASS'],
+    "host" : os.environ['DB_HOST'],  
     "pool_name" : "mysql_pool",
     "pool_size" : 20,
     "charset": 'utf8mb4',
