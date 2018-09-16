@@ -771,20 +771,25 @@ func deleteReservationHandler(c echo.Context) error {
 		}
 
 		if reservation.UserID != user.ID {
+			// It's possible that the DB is overwritten after we read a researvation from the cache. 
+			reservation := eventSheetCache.Get(event.ID, sheet.ID)
+			if reservation == nil || reservation.UserID != user.ID {
+				return resError(c, "not_reserved", 400)
+			}
 			tx.Rollback()
 			return resError(c, "not_permitted", 403)
 		}
 
 		if _, err := tx.Exec("UPDATE reservations SET canceled_at = ? WHERE id = ?", time.Now().UTC().Format("2006-01-02 15:04:05.000000"), reservation.ID); err != nil {
 			tx.Rollback()
-			log.Println("re-try: rollback by", err)
+			log.Println("[update(delete)] re-try: rollback by", err)
 			continue
 		}
 
 		eventSheetCache.Delete(reservation.EventID, reservation.SheetID)
 		if err := tx.Commit(); err != nil {
 			return err
-			log.Println("re-try: rollback by", err)
+			log.Println("[commit(delete)] re-try: rollback by", err)
 			continue
 		}
 		break
