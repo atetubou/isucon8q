@@ -1,4 +1,1 @@
-time    count  time/count  URL                                                                              
-3.8230  12     0.3186      200 GET  ^/api/events/\d+$                                                       
-0.0110  1      0.0110      500 GET  /profile/?rev_id1=06c043908d&hostname1=118-27-11-242&rev_id2=&hostname2=
-0.0030  1      0.0030      200 GET  /profile/                                                               
+time  count  time/count  URL
