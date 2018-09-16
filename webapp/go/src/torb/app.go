@@ -292,9 +292,10 @@ func getEvent(eventID, loginUserID int64) (*Event, error) {
 
 	for _, sheet := range allSheets {
 		sheet := sheet
-		event.Sheets[sheet.Rank].Price = event.Price + sheet.Price
+		var rankSheet *Sheets = event.Sheets[sheet.Rank]
+		rankSheet.Price = event.Price + sheet.Price
 		event.Total++
-		event.Sheets[sheet.Rank].Total++
+		rankSheet.Total++
 
 		reservation := eventSheetCache.Get(event.ID, sheet.ID)
 		if reservation != nil {
@@ -303,10 +304,10 @@ func getEvent(eventID, loginUserID int64) (*Event, error) {
 			sheet.ReservedAtUnix = reservation.ReservedAt.Unix()
 		} else {
 			event.Remains++
-			event.Sheets[sheet.Rank].Remains++
+			rankSheet.Remains++
 		}
 
-		event.Sheets[sheet.Rank].Detail = append(event.Sheets[sheet.Rank].Detail, &sheet)
+		rankSheet.Detail = append(rankSheet.Detail, &sheet)
 	}
 
 	return &event, nil
