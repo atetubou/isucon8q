@@ -15,6 +15,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	_ "github.com/go-sql-driver/mysql"
@@ -84,6 +85,54 @@ type Administrator struct {
 	LoginName string `json:"login_name,omitempty"`
 	PassHash  string `json:"pass_hash,omitempty"`
 }
+
+type EventSheetKey struct {
+	EventId int64
+	SheetId int64
+}
+
+type EventSheetReservation struct {
+	UserID int64
+	ReservedAt time.Time	
+}
+
+type EventSheetReservationCache struct {
+	mu    sync.RWMutex
+	cache map[EventSheetKey]EventSheetReservation
+}
+
+func newEventSheetCache() EventSheetReservationCache {
+	return EventSheetReservationCache{
+		cache: make(map[EventSheetKey]EventSheetReservation),
+	}
+}
+
+func (c *EventSheetReservationCache) Get(eventId int64, sheetId int64) *EventSheetReservation {
+	key := EventSheetKey{ eventId, sheetId }
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	if v, ok := c.cache[key]; ok {
+		return &v
+	}
+	return nil
+}
+
+func (c *EventSheetReservationCache) Set(eventId int64, sheetId int64, reservation EventSheetReservation) {
+	key := EventSheetKey{ eventId, sheetId }
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.cache[key] = reservation
+}
+
+func (c *EventSheetReservationCache) Delete(eventId int64, sheetId int64) {
+	key := EventSheetKey{ eventId, sheetId }
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	delete(c.cache, key)
+}
+
+var eventSheetCache EventSheetReservationCache
+
 
 func sessUserID(c echo.Context) int64 {
 	sess, _ := session.Get("session", c)
@@ -238,18 +287,15 @@ func getEvent(eventID, loginUserID int64) (*Event, error) {
 		event.Sheets[sheet.Rank].Price = event.Price + sheet.Price
 		event.Total++
 		event.Sheets[sheet.Rank].Total++
-
-		var reservation Reservation
-		err := db.QueryRow("SELECT * FROM reservations WHERE event_id = ? AND sheet_id = ? AND canceled_at IS NULL GROUP BY event_id, sheet_id HAVING reserved_at = MIN(reserved_at)", event.ID, sheet.ID).Scan(&reservation.ID, &reservation.EventID, &reservation.SheetID, &reservation.UserID, &reservation.ReservedAt, &reservation.CanceledAt)
-		if err == nil {
+		
+		reservation := eventSheetCache.Get(event.ID, sheet.ID)
+		if reservation != nil {
 			sheet.Mine = reservation.UserID == loginUserID
 			sheet.Reserved = true
 			sheet.ReservedAtUnix = reservation.ReservedAt.Unix()
-		} else if err == sql.ErrNoRows {
+		} else {
 			event.Remains++
 			event.Sheets[sheet.Rank].Remains++
-		} else {
-			return nil, err
 		}
 
 		event.Sheets[sheet.Rank].Detail = append(event.Sheets[sheet.Rank].Detail, &sheet)
@@ -347,12 +393,29 @@ func getInitializeHandler(c echo.Context) error {
 	if err := pprof.StartCPUProfile(f); err != nil {
 		log.Fatal("could not start CPU profile: ", err)
 	}
-
+	
 	go func() {
 		time.Sleep(time.Second * 70)
 		defer pprof.StopCPUProfile()
 	}()
 
+	eventSheetCache = newEventSheetCache()
+	rows, err := db.Query("SELECT * FROM reservations WHERE canceled_at IS NULL")
+	if err != nil {
+		log.Fatal(err)
+	}
+	
+	for rows.Next() {
+		var reservation Reservation
+		if err := rows.Scan(&reservation.ID, &reservation.EventID, &reservation.SheetID, &reservation.UserID, &reservation.ReservedAt, &reservation.CanceledAt); err != nil {
+			log.Fatal(err)
+		}
+	
+		if reservation.CanceledAt == nil {
+			eventSheetCache.Set(reservation.EventID, reservation.SheetID, EventSheetReservation{ reservation.UserID, *(reservation.ReservedAt)} )
+		}
+	}
+	
 	return c.NoContent(204)
 }
 
@@ -588,19 +651,21 @@ func postReserveHandler(c echo.Context) error {
 	var sheet Sheet
 	var reservationID int64
 	for {
-		if err := db.QueryRow("SELECT * FROM sheets WHERE id NOT IN (SELECT sheet_id FROM reservations WHERE event_id = ? AND canceled_at IS NULL FOR UPDATE) AND `rank` = ? ORDER BY RAND() LIMIT 1", event.ID, params.Rank).Scan(&sheet.ID, &sheet.Rank, &sheet.Num, &sheet.Price); err != nil {
+		tx, err := db.Begin()
+		if err := tx.QueryRow("SELECT * FROM sheets WHERE id NOT IN (SELECT sheet_id FROM reservations WHERE event_id = ? AND canceled_at IS NULL FOR UPDATE) AND `rank` = ? ORDER BY RAND() LIMIT 1", event.ID, params.Rank).Scan(&sheet.ID, &sheet.Rank, &sheet.Num, &sheet.Price); err != nil {
 			if err == sql.ErrNoRows {
 				return resError(c, "sold_out", 409)
 			}
 			return err
 		}
 
-		tx, err := db.Begin()
+		
 		if err != nil {
 			return err
 		}
 
-		res, err := tx.Exec("INSERT INTO reservations (event_id, sheet_id, user_id, reserved_at) VALUES (?, ?, ?, ?)", event.ID, sheet.ID, user.ID, time.Now().UTC().Format("2006-01-02 15:04:05.000000"))
+		t := time.Now()
+		res, err := tx.Exec("INSERT INTO reservations (event_id, sheet_id, user_id, reserved_at) VALUES (?, ?, ?, ?)", event.ID, sheet.ID, user.ID, t.UTC().Format("2006-01-02 15:04:05.000000"))
 		if err != nil {
 			tx.Rollback()
 			log.Println("re-try: rollback by", err)
@@ -617,6 +682,7 @@ func postReserveHandler(c echo.Context) error {
 			log.Println("re-try: rollback by", err)
 			continue
 		}
+		eventSheetCache.Set(event.ID, sheet.ID, EventSheetReservation{ user.ID, t })
 
 		break
 	}
@@ -683,10 +749,11 @@ func deleteReservationHandler(c echo.Context) error {
 		tx.Rollback()
 		return err
 	}
-
+	eventSheetCache.Delete(reservation.EventID, reservation.SheetID)
 	if err := tx.Commit(); err != nil {
 		return err
 	}
+	
 
 	return c.NoContent(204)
 }
