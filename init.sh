@@ -10,7 +10,7 @@ cd $(dirname $0)
 sudo systemctl stop torb.go
 rm -rf ~/torb/webapp/go/torb
 cp webapp/go/torb ~/torb/webapp/go/torb
-rsync -av webapp/public/ ~/torb/webapp/public/
+# rsync -av webapp/public/ ~/torb/webapp/public/
 cp webapp/env.sh ~/torb/webapp/env.sh
 
 #(
