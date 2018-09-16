@@ -647,6 +647,7 @@ func postReserveHandler(c echo.Context) error {
 
 	user, err := getLoginUser(c)
 	if err != nil {
+		log.Println("failed to get login user:", err)
 		return err
 	}
 
@@ -673,7 +674,8 @@ func postReserveHandler(c echo.Context) error {
 			if err == sql.ErrNoRows {
 				return resError(c, "sold_out", 409)
 			}
-			return err
+			log.Println("re-try: rollback by", err)
+			continue
 		}
 
 		t := time.Now()
