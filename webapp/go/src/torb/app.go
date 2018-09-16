@@ -767,7 +767,7 @@ func deleteReservationHandler(c echo.Context) error {
 		}
 
 		if reservation.UserID != user.ID {
-			// It's possible that the DB is overwritten after we read a researvation from the cache. 
+			// It's possible that the DB is overwritten after we read a researvation from the cache.
 			reservation := eventSheetCache.Get(event.ID, sheet.ID)
 			if reservation == nil || reservation.UserID != user.ID {
 				return resError(c, "not_reserved", 400)
@@ -784,7 +784,6 @@ func deleteReservationHandler(c echo.Context) error {
 
 		eventSheetCache.Delete(reservation.EventID, reservation.SheetID)
 		if err := tx.Commit(); err != nil {
-			return err
 			log.Println("[commit(delete)] re-try: rollback by", err)
 			continue
 		}
@@ -1045,7 +1044,7 @@ func main() {
 	}
 	defer logfile.Close()
 	log.SetOutput(io.MultiWriter(logfile, os.Stdout))
-	log.SetFlags(log.Ldate | log.Ltime)
+	log.SetFlags(log.Ldate | log.Ltime | log.Llongfile)
 
 	db, err = sql.Open("mysql", dsn)
 	if err != nil {
