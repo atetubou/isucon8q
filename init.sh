@@ -21,12 +21,12 @@ rsync -av db/ ~/torb/db
 
 
 sudo rsync -av etc/nginx/ /etc/nginx/
-# sudo rsync -av etc/my.cnf /etc/my.cnf
-# sudo rsync -av etc/my.cnf.d/ /etc/my.cnf.d/
+sudo rsync -av etc/my.cnf /etc/my.cnf
+sudo rsync -av etc/my.cnf.d/ /etc/my.cnf.d/
 # rsync -av etc/sysctl.conf /etc/
 # rsync -av etc/security/ /etc/security/
 
-# sudo service mariadb restart
+sudo service mariadb restart
 sudo rm -rf /var/log/nginx/*.log
 
 sudo systemctl disable h2o.service

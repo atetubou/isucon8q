@@ -10,4 +10,3 @@
 # If you use the same .cnf file for MySQL and MariaDB,
 # use it for MariaDB-only client options
 [client-mariadb]
-
