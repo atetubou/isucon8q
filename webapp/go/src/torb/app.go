@@ -353,10 +353,11 @@ func main() {
 	e.GET("/initialize", func(c echo.Context) error {
 		cmd := exec.Command("../../db/init.sh")
 		cmd.Stdin = os.Stdin
-		cmd.Stdout = os.Stdout
+		cmd.Stdout = os.Stderr
+		cmd.Stderr = os.Stderr
 		err := cmd.Run()
 		if err != nil {
-			log.Fatal(err)
+			log.Print(err)
 		}
 
 		f, err := os.Create("/tmp/cpuprofile")
