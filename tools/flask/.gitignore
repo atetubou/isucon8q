@@ -1,0 +1,5 @@
+env/
+__pycache__
+uwsgi.log
+uwsgi.pid
+reload.trigger

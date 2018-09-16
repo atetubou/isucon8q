@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>index</title>
+        <script   src="https://code.jquery.com/jquery-3.3.1.min.js"   integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8="   crossorigin="anonymous"></script>
+        <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css" integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO" crossorigin="anonymous">
+        <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/js/bootstrap.min.js" integrity="sha384-ChfqqxuZUCnJSK3+MXmPNIyE6ZbWh2IMqE241rYiqJxyMiZ6OW/JmZQ5stwEULTy" crossorigin="anonymous"></script>
+    </head>
+    <body>
+        <div class="container">
+            <h1>Compare</h1>
+            <div>
+                <form method="GET" action="/">
+                    <select name="rev_id1">
+                        {% for rev_id in commits %}
+                            <option value={{ rev_id }}>{{ rev_id }}</option>
+                        {% endfor %}
+                    </select>
+                    <select name="hostname1">
+                        {% for hostname in hosts %}
+                            <option value={{ hostname }}>{{ hostname }}</option>
+                        {% endfor %}
+                    </select>
+                    <select name="rev_id2">
+                        <option value="">-</option>
+                        {% for rev_id in commits %}
+                            <option value={{ rev_id }}>{{ rev_id }}</option>
+                        {% endfor %}
+                    </select>
+                    <select name="hostname2">
+                        <option value="">-</option>
+                        {% for hostname in hosts %}
+                            <option value={{ hostname }}>{{ hostname }}</option>
+                        {% endfor %}
+                    </select>
+                    <input type="submit" value="比較" >
+                </form>
+            </div>
+            {% if comp %}
+            <div>
+                {% for entry in comp %}
+                    <div>
+                        <h3>{{ entry['func_name'] }}</h3>
+                        <div style="font-family: monospace;width: ">
+                        {{ entry['diffHTML'] | safe }}
+                        </div>
+                    </div>
+                {% endfor %}
+<style>
+table {
+    table-layout: fixed;
+    min-width: 100%;
+}
+tbody td {
+    width: 100px;
+    max-width: 100px;
+    overflow: scroll;
+    white-space: nowrap;
+}
+.diff_next{
+    width: 5px;
+    max-width: 5px;
+    text-align: right;
+}
+.diff_header{
+    width: 10px;
+    max-width: 10px;
+    text-align: right;
+}
+</style>
+            </div>
+            {% elif profile1 %}
+            <div>
+                {% for routine in profile1 %}
+                    <div>
+                        <h3>{{ routine['func_name'] }}</h3>
+                        <label>Ratio: {{ routine['ratio'] }}</label>
+                        <pre>{{ routine['body']}}</pre>
+                    </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+    </body>
+</html>
