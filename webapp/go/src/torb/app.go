@@ -404,7 +404,7 @@ func getInitializeHandler(c echo.Context) error {
 			log.Fatal(err)
 		}
 
-		if reservation.CacneledAt == nil {
+		if reservation.CanceledAt == nil {
 			eventSheetCache.Set(reservation.EventID, reservation.SheetID, EventSheetReservation{ reservation.UserID, *(reservation.ReservedAt)} )
 		}
 	}
