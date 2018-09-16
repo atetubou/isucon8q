@@ -10,8 +10,8 @@ import (
 	"io"
 	"log"
 	"os"
-	"runtime/pprof"
 	"os/exec"
+	"runtime/pprof"
 	"sort"
 	"strconv"
 	"strings"
@@ -364,12 +364,14 @@ func main() {
 			log.Fatal(err)
 		}
 		if err := pprof.StartCPUProfile(f); err != nil {
-			log.Print("could not start CPU profile: ", err)
+			log.Fatal("could not start CPU profile: ", err)
 		}
 
 		go func() {
-			time.Sleep(time.Second * 70)
-			defer pprof.StopCPUProfile()
+			time.Sleep(time.Second * 5)
+			if err := pprof.StopCPUProfile(); err != nil {
+				log.Fatal("could not end CPU profile:", err)
+			}
 		}()
 
 		return c.NoContent(204)
