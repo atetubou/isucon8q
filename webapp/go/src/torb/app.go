@@ -403,8 +403,9 @@ func getInitializeHandler(c echo.Context) error {
 		if err := rows.Scan(&reservation.ID, &reservation.EventID, &reservation.SheetID, &reservation.UserID, &reservation.ReservedAt, &reservation.CanceledAt); err != nil {
 			log.Fatal(err)
 		}
-
+		
 		if reservation.CanceledAt == nil {
+			log.Print(reservation)
 			eventSheetCache.Set(reservation.EventID, reservation.SheetID, EventSheetReservation{ reservation.UserID, *(reservation.ReservedAt)} )
 		}
 	}
