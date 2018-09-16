@@ -775,6 +775,7 @@ func deleteReservationHandler(c echo.Context) error {
 			log.Println("re-try: rollback by", err)
 			continue
 		}
+		break
 	}
 
 	return c.NoContent(204)
