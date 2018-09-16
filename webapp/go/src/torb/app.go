@@ -112,6 +112,37 @@ func newEventSheetCache() EventSheetReservationCache {
 	}
 }
 
+func newEventsCache() EventsCache {
+	return EventsCache{cache: make(map[bool]EventsCacheEntry)}
+}
+
+type EventsCacheEntry struct {
+	Events  []*Event
+	Expires time.Time
+}
+
+type EventsCache struct {
+	mu    sync.RWMutex
+	cache map[bool]EventsCacheEntry
+}
+
+func (c *EventsCache) Get(all bool) ([]*Event, error) {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	now := time.Now()
+	if v, ok := c.cache[all]; ok && v.Expires.After(now) {
+		return v.Events, nil
+	}
+	return nil, errors.New("not found or expired")
+}
+
+func (c *EventsCache) Set(all bool, events []*Event) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	expires := time.Now().Add(300 * time.Millisecond)
+	c.cache[all] = EventsCacheEntry{events, expires}
+}
+
 func (c *EventSheetReservationCache) Get(eventId int64, sheetId int64) *EventSheetReservation {
 	//key := EventSheetKey{eventId, sheetId}
 	c.mu[sheetId].RLock()
@@ -137,6 +168,7 @@ func (c *EventSheetReservationCache) Delete(eventId int64, sheetId int64) {
 }
 
 var eventSheetCache EventSheetReservationCache
+var eventsCache EventsCache
 
 func sessUserID(c echo.Context) int64 {
 	sess, _ := session.Get("session", c)
@@ -242,6 +274,10 @@ func getLoginAdministrator(c echo.Context) (*Administrator, error) {
 }
 
 func getEvents(all bool) ([]*Event, error) {
+	if v, err := eventsCache.Get(all); err == nil {
+		return v, nil
+	}
+
 	tx, err := db.Begin()
 	if err != nil {
 		return nil, err
@@ -275,6 +311,7 @@ func getEvents(all bool) ([]*Event, error) {
 		}
 		events[i] = event
 	}
+	eventsCache.Set(all, events)
 	return events, nil
 }
 
@@ -391,6 +428,7 @@ func mainInit() {
 		log.Fatal(err)
 	}
 
+	eventsCache = newEventsCache()
 	eventSheetCache = newEventSheetCache()
 	rows, err = db.Query("SELECT * FROM reservations WHERE canceled_at IS NULL")
 	if err != nil {
