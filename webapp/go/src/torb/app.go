@@ -234,17 +234,7 @@ func getEvent(eventID, loginUserID int64) (*Event, error) {
 		"C": &Sheets{},
 	}
 
-	rows, err := db.Query("SELECT * FROM sheets ORDER BY `rank`, num")
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	for rows.Next() {
-		var sheet Sheet
-		if err := rows.Scan(&sheet.ID, &sheet.Rank, &sheet.Num, &sheet.Price); err != nil {
-			return nil, err
-		}
+	for _, sheet := range allSheets {
 		event.Sheets[sheet.Rank].Price = event.Price + sheet.Price
 		event.Total++
 		event.Sheets[sheet.Rank].Total++
@@ -323,6 +313,8 @@ func getIndexHandler(c echo.Context) error {
 	})
 }
 
+var allSheets []Sheet
+
 func getInitializeHandler(c echo.Context) error {
 	cmd := exec.Command("../../db/init.sh")
 	cmd.Stdin = os.Stdin
@@ -332,6 +324,21 @@ func getInitializeHandler(c echo.Context) error {
 	if err != nil {
 		log.Print(err)
 	}
+
+	allSheets = nil
+	rows, err := db.Query("SELECT * FROM sheets ORDER BY `rank`, num")
+	if err != nil {
+		log.Fatal("db.Query", err)
+	}
+	for rows.Next() {
+		var sheet Sheet
+		if err := rows.Scan(&sheet.ID, &sheet.Rank, &sheet.Num, &sheet.Price); err != nil {
+			log.Fatal("rows.Scane:", err)
+		}
+		allSheets = append(allSheets, sheet)
+	}
+
+	rows.Close()
 
 	f, err := os.Create("/tmp/cpuprofile")
 	if err != nil {
