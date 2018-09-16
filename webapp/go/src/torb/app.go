@@ -361,16 +361,7 @@ func getIndexHandler(c echo.Context) error {
 
 var allSheets []Sheet
 
-func getInitializeHandler(c echo.Context) error {
-	cmd := exec.Command("../../db/init.sh")
-	cmd.Stdin = os.Stdin
-	cmd.Stdout = os.Stderr
-	cmd.Stderr = os.Stderr
-	err := cmd.Run()
-	if err != nil {
-		log.Print(err)
-	}
-
+func mainInit() {
 	allSheets = []Sheet{}
 	rows, err := db.Query("SELECT * FROM sheets ORDER BY `rank`, num")
 	if err != nil {
@@ -386,11 +377,6 @@ func getInitializeHandler(c echo.Context) error {
 	log.Print(len(allSheets))
 
 	if err := rows.Close(); err != nil {
-		log.Fatal(err)
-	}
-
-	f, err := os.Create("/tmp/cpuprofile")
-	if err != nil {
 		log.Fatal(err)
 	}
 
@@ -412,6 +398,25 @@ func getInitializeHandler(c echo.Context) error {
 	}
 
 	if err := rows.Close(); err != nil {
+		log.Fatal(err)
+	}
+
+}
+
+func getInitializeHandler(c echo.Context) error {
+	cmd := exec.Command("../../db/init.sh")
+	cmd.Stdin = os.Stdin
+	cmd.Stdout = os.Stderr
+	cmd.Stderr = os.Stderr
+	err := cmd.Run()
+	if err != nil {
+		log.Print(err)
+	}
+
+	mainInit()
+
+	f, err := os.Create("/tmp/cpuprofile")
+	if err != nil {
 		log.Fatal(err)
 	}
 
@@ -1009,6 +1014,8 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	mainInit()
 
 	e := echo.New()
 	funcs := template.FuncMap{
