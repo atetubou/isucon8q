@@ -964,7 +964,7 @@ func getAdminReportsEventHandler(c echo.Context) error {
 		return err
 	}
 
-	rows, err := db.Query("SELECT r.*, s.rank AS sheet_rank, s.num AS sheet_num, s.price AS sheet_price, e.price AS event_price FROM reservations r INNER JOIN sheets s ON s.id = r.sheet_id INNER JOIN events e ON e.id = r.event_id WHERE r.event_id = ? ORDER BY reserved_at ASC FOR UPDATE", event.ID)
+	rows, err := db.Query("SELECT r.*, e.price AS event_price FROM reservations r INNER JOIN events e ON e.id = r.event_id WHERE r.event_id = ? ORDER BY reserved_at ASC FOR UPDATE", event.ID)
 	if err != nil {
 		return err
 	}
@@ -973,10 +973,11 @@ func getAdminReportsEventHandler(c echo.Context) error {
 	var reports []Report
 	for rows.Next() {
 		var reservation Reservation
-		var sheet Sheet
-		if err := rows.Scan(&reservation.ID, &reservation.EventID, &reservation.SheetID, &reservation.UserID, &reservation.ReservedAt, &reservation.CanceledAt, &sheet.Rank, &sheet.Num, &sheet.Price, &event.Price); err != nil {
+		if err := rows.Scan(&reservation.ID, &reservation.EventID, &reservation.SheetID, &reservation.UserID, &reservation.ReservedAt, &reservation.CanceledAt, &event.Price); err != nil {
 			return err
 		}
+		var sheet Sheet = idexSheets[reservation.SheetID]
+
 		report := Report{
 			ReservationID: reservation.ID,
 			EventID:       event.ID,
