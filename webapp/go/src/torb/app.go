@@ -98,38 +98,42 @@ type EventSheetReservation struct {
 
 type EventSheetReservationCache struct {
 	mu    []sync.RWMutex
-	cache map[EventSheetKey]EventSheetReservation
+	cache []map[int64]EventSheetReservation
 }
 
 func newEventSheetCache() EventSheetReservationCache {
+	cache := make([]map[int64]EventSheetReservation, 1010)
+	for i := 0; i < 1010; i++ {
+		cache[i] = make(map[int64]EventSheetReservation)
+	}
 	return EventSheetReservationCache{
 		mu:    make([]sync.RWMutex, 1010),
-		cache: make(map[EventSheetKey]EventSheetReservation),
+		cache: cache,
 	}
 }
 
 func (c *EventSheetReservationCache) Get(eventId int64, sheetId int64) *EventSheetReservation {
-	key := EventSheetKey{eventId, sheetId}
+	//key := EventSheetKey{eventId, sheetId}
 	c.mu[sheetId].RLock()
 	defer c.mu[sheetId].RUnlock()
-	if v, ok := c.cache[key]; ok {
+	if v, ok := c.cache[sheetId][eventId]; ok {
 		return &v
 	}
 	return nil
 }
 
 func (c *EventSheetReservationCache) Set(eventId int64, sheetId int64, reservation EventSheetReservation) {
-	key := EventSheetKey{eventId, sheetId}
+	//key := EventSheetKey{eventId, sheetId}
 	c.mu[sheetId].Lock()
 	defer c.mu[sheetId].Unlock()
-	c.cache[key] = reservation
+	c.cache[sheetId][eventId] = reservation
 }
 
 func (c *EventSheetReservationCache) Delete(eventId int64, sheetId int64) {
-	key := EventSheetKey{eventId, sheetId}
+	//key := EventSheetKey{eventId, sheetId}
 	c.mu[sheetId].Lock()
 	defer c.mu[sheetId].Unlock()
-	delete(c.cache, key)
+	delete(c.cache[sheetId], eventId)
 }
 
 var eventSheetCache EventSheetReservationCache
