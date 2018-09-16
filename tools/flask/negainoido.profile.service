@@ -3,7 +3,7 @@ Description = isucon7final main application in python
 
 [Service]
 WorkingDirectory=/home/isucon/flask/
-EnvironmentFile=/home/isucon/env.sh
+EnvironmentFile=/home/isucon/torb/webapp/env.sh
 ExecStart = /home/isucon/flask/env/bin/uwsgi -H /home/isucon/flask/env  --ini /home/isucon/flask/myapp.ini
 
 Restart   = always
