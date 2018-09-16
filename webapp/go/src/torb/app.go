@@ -962,11 +962,13 @@ func getAdminReportsEventHandler(c echo.Context) error {
 
 	event, err := getEvent(eventID, -1)
 	if err != nil {
+		log.Print("getEvent (admin reports)", err)
 		return err
 	}
 
 	rows, err := db.Query("SELECT r.*, s.rank AS sheet_rank, s.num AS sheet_num, s.price AS sheet_price, e.price AS event_price FROM reservations r INNER JOIN sheets s ON s.id = r.sheet_id INNER JOIN events e ON e.id = r.event_id WHERE r.event_id = ? ORDER BY reserved_at ASC FOR UPDATE", event.ID)
 	if err != nil {
+		log.Print("select rows (admin reports)", err)
 		return err
 	}
 	defer rows.Close()
@@ -976,6 +978,7 @@ func getAdminReportsEventHandler(c echo.Context) error {
 		var reservation Reservation
 		var sheet Sheet
 		if err := rows.Scan(&reservation.ID, &reservation.EventID, &reservation.SheetID, &reservation.UserID, &reservation.ReservedAt, &reservation.CanceledAt, &sheet.Rank, &sheet.Num, &sheet.Price, &event.Price); err != nil {
+			log.Print("scan (admin reports)", err)
 			return err
 		}
 		report := Report{
