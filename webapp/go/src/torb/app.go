@@ -18,6 +18,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/LK4D4/trylock"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/gorilla/sessions"
 	"github.com/labstack/echo"
@@ -644,7 +645,7 @@ func getEventHandler(c echo.Context) error {
 	return c.JSON(200, sanitizeEvent(event))
 }
 
-var sheetMu = make([]sync.Mutex, 1100)
+var sheetMu = make([]trylock.Mutex, 1100)
 
 func postReserveHandler(c echo.Context) error {
 	eventID, err := strconv.ParseInt(c.Param("id"), 10, 64)
@@ -680,9 +681,7 @@ func postReserveHandler(c echo.Context) error {
 	var reservationID int64
 
 	for {
-		tx, err := db.Begin()
-		if err := tx.QueryRow("SELECT * FROM sheets WHERE id NOT IN (SELECT sheet_id FROM reservations WHERE event_id = ? AND canceled_at IS NULL FOR UPDATE) AND `rank` = ? ORDER BY RAND() LIMIT 1", event.ID, params.Rank).Scan(&sheet.ID, &sheet.Rank, &sheet.Num, &sheet.Price); err != nil {
-			tx.Rollback()
+		if err := db.QueryRow("SELECT * FROM sheets WHERE id NOT IN (SELECT sheet_id FROM reservations WHERE event_id = ? AND canceled_at IS NULL FOR UPDATE) AND `rank` = ? ORDER BY RAND() LIMIT 1", event.ID, params.Rank).Scan(&sheet.ID, &sheet.Rank, &sheet.Num, &sheet.Price); err != nil {
 			if err == sql.ErrNoRows {
 				return resError(c, "sold_out", 409)
 			}
@@ -690,7 +689,11 @@ func postReserveHandler(c echo.Context) error {
 			continue
 		}
 
-		sheetMu[sheet.ID].Lock()
+		if !sheetMu[sheet.ID].TryLock() {
+			continue
+		}
+
+		tx, _ := db.Begin()
 
 		t := time.Now()
 		res, err := tx.Exec("INSERT INTO reservations (event_id, sheet_id, user_id, reserved_at) VALUES (?, ?, ?, ?)", event.ID, sheet.ID, user.ID, t.UTC().Format("2006-01-02 15:04:05.000000"))
