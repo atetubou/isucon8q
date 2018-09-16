@@ -36,14 +36,14 @@ ROUTINE ======================== main.getEvent in /home/isucon/isucon8q/webapp/g
          .          .    270:
 ROUTINE ======================== main.main.func9 in /home/isucon/isucon8q/webapp/go/src/torb/app.go
          0      440ms (flat, cum) 73.33% of Total
+         .          .    549:			events[i] = sanitizeEvent(v)
+         .          .    550:		}
+         .          .    551:		return c.JSON(200, events)
+         .          .    552:	})
+         .          .    553:	e.GET("/api/events/:id", func(c echo.Context) error {
+         .      440ms    554:		eventID, err := strconv.ParseInt(c.Param("id"), 10, 64)
+         .          .    555:		if err != nil {
+         .          .    556:			return resError(c, "not_found", 404)
          .          .    557:		}
          .          .    558:
          .          .    559:		loginUserID := int64(-1)
-         .          .    560:		if user, err := getLoginUser(c); err == nil {
-         .          .    561:			loginUserID = user.ID
-         .      440ms    562:		}
-         .          .    563:
-         .          .    564:		event, err := getEvent(eventID, loginUserID)
-         .          .    565:		if err != nil {
-         .          .    566:			if err == sql.ErrNoRows {
-         .          .    567:				return resError(c, "not_found", 404)

@@ -39,16 +39,16 @@ name main.getEvent in /home/isucon/isucon8q/webapp/go/src/torb/app.go
 ratio 73.33 %
 name main.main.func9 in /home/isucon/isucon8q/webapp/go/src/torb/app.go
          0      440ms (flat, cum) 73.33% of Total
+         .          .			events[i] = sanitizeEvent(v)
+         .          .		}
+         .          .		return c.JSON(200, events)
+         .          .	})
+         .          .	e.GET("/api/events/:id", func(c echo.Context) error {
+         .      440ms		eventID, err := strconv.ParseInt(c.Param("id"), 10, 64)
+         .          .		if err != nil {
+         .          .			return resError(c, "not_found", 404)
          .          .		}
          .          .
          .          .		loginUserID := int64(-1)
-         .          .		if user, err := getLoginUser(c); err == nil {
-         .          .			loginUserID = user.ID
-         .      440ms		}
-         .          .
-         .          .		event, err := getEvent(eventID, loginUserID)
-         .          .		if err != nil {
-         .          .			if err == sql.ErrNoRows {
-         .          .				return resError(c, "not_found", 404)
 
 73.33
