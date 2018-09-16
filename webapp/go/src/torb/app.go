@@ -372,6 +372,7 @@ func main() {
 			if err := pprof.StopCPUProfile(); err != nil {
 				log.Fatal("could not end CPU profile:", err)
 			}
+			log.Println("no error")
 		}()
 
 		return c.NoContent(204)
