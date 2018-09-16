@@ -369,7 +369,7 @@ func main() {
 		}
 
 		go func() {
-			time.Sleep(time.Second * 5)
+			time.Sleep(time.Second * 70)
 			pprof.StopCPUProfile()
 			log.Println("no error")
 		}()
