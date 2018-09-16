@@ -385,20 +385,14 @@ func getInitializeHandler(c echo.Context) error {
 	}
 	log.Print(len(allSheets))
 
-	rows.Close()
+	if err := rows.Close(); err != nil {
+		log.Fatal(err)
+	}
 
 	f, err := os.Create("/tmp/cpuprofile")
 	if err != nil {
 		log.Fatal(err)
 	}
-	if err := pprof.StartCPUProfile(f); err != nil {
-		log.Fatal("could not start CPU profile: ", err)
-	}
-
-	go func() {
-		time.Sleep(time.Second * 70)
-		defer pprof.StopCPUProfile()
-	}()
 
 	eventSheetCache = newEventSheetCache()
 	rows, err = db.Query("SELECT * FROM reservations WHERE canceled_at IS NULL")
@@ -416,6 +410,19 @@ func getInitializeHandler(c echo.Context) error {
 			eventSheetCache.Set(reservation.EventID, reservation.SheetID, EventSheetReservation{reservation.UserID, *(reservation.ReservedAt)})
 		}
 	}
+
+	if err := rows.Close(); err != nil {
+		log.Fatal(err)
+	}
+
+	if err := pprof.StartCPUProfile(f); err != nil {
+		log.Fatal("could not start CPU profile: ", err)
+	}
+
+	go func() {
+		time.Sleep(time.Second * 70)
+		defer pprof.StopCPUProfile()
+	}()
 
 	return c.NoContent(204)
 }
