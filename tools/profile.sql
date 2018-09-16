@@ -3,7 +3,7 @@ CREATE TABLE IF NOT EXISTS `profile` (
     `id`       int(11) NOT NULL AUTO_INCREMENT,
     `commit_id`   varchar(40) NOT NULL,
     `hostname` varchar(100) NOT NULL,
-    `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
 
