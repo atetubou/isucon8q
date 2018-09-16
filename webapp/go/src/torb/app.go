@@ -273,6 +273,18 @@ func getLoginAdministrator(c echo.Context) (*Administrator, error) {
 	return &administrator, err
 }
 
+func getEventsCached(all bool) ([]*Event, error) {
+	if v, err := eventsCache.Get(all); err == nil {
+		return v, nil
+	}
+	v, err := getEvents(all)
+	if err != nil {
+		return nil, err
+	}
+	eventsCache.Set(all, v)
+	return v, nil
+}
+
 func getEvents(all bool) ([]*Event, error) {
 	if v, err := eventsCache.Get(all); err == nil {
 		return v, nil
@@ -311,7 +323,6 @@ func getEvents(all bool) ([]*Event, error) {
 		}
 		events[i] = event
 	}
-	eventsCache.Set(all, events)
 	return events, nil
 }
 
@@ -393,7 +404,7 @@ func (r *Renderer) Render(w io.Writer, name string, data interface{}, c echo.Con
 }
 
 func getIndexHandler(c echo.Context) error {
-	events, err := getEvents(false)
+	events, err := getEventsCached(false)
 	if err != nil {
 		return err
 	}
@@ -805,7 +816,7 @@ func deleteReservationHandler(c echo.Context) error {
 		}
 
 		if reservation.UserID != user.ID {
-			// It's possible that the DB is overwritten after we read a researvation from the cache. 
+			// It's possible that the DB is overwritten after we read a researvation from the cache.
 			reservation := eventSheetCache.Get(event.ID, sheet.ID)
 			if reservation == nil || reservation.UserID != user.ID {
 				return resError(c, "not_reserved", 400)
