@@ -381,8 +381,10 @@ func getInitializeHandler(c echo.Context) error {
 		if err := rows.Scan(&sheet.ID, &sheet.Rank, &sheet.Num, &sheet.Price); err != nil {
 			log.Fatal("rows.Scane:", err)
 		}
+		log.Print(sheet)
 		allSheets = append(allSheets, sheet)
 	}
+	log.Print(len(allSheets))
 
 	rows.Close()
 
