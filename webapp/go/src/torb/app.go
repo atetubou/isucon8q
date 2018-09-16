@@ -1016,12 +1016,12 @@ func main() {
 	var err error
 	logfile, err := os.Create("/tmp/log.log")
 	if err != nil {
-		panic("cannnot open test.log:" + err.Error())
+		panic("cannnot open /tmp/log.log:" + err.Error())
 	}
 	defer logfile.Close()
 	log.SetOutput(io.MultiWriter(logfile, os.Stdout))
 	log.SetFlags(log.Ldate | log.Ltime)
-	
+
 	db, err = sql.Open("mysql", dsn)
 	if err != nil {
 		log.Fatal(err)
@@ -1040,7 +1040,14 @@ func main() {
 		templates: template.Must(template.New("").Delims("[[", "]]").Funcs(funcs).ParseGlob("views/*.tmpl")),
 	}
 	e.Use(session.Middleware(sessions.NewCookieStore([]byte("secret"))))
-	e.Use(middleware.LoggerWithConfig(middleware.LoggerConfig{Output: os.Stderr}))
+
+	echolog, err := os.Create("/tmp/echo.log")
+	if err != nil {
+		panic("cannnot open /tmp/echo.log:" + err.Error())
+	}
+
+	e.Use(middleware.LoggerWithConfig(middleware.LoggerConfig{Output: echolog}))
+
 	e.Static("/", "public")
 	e.GET("/", getIndexHandler, fillinUser)
 	e.GET("/initialize", getInitializeHandler)
