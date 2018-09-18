@@ -11,9 +11,7 @@ import (
 	"os"
 	"os/exec"
 	"runtime/pprof"
-	"sort"
 	"strconv"
-	"strings"
 	"sync"
 	"time"
 
@@ -1135,7 +1133,7 @@ type Report struct {
 }
 
 func renderReportCSV(c echo.Context, reports []Report) error {
-	sort.Slice(reports, func(i, j int) bool { return strings.Compare(reports[i].SoldAt, reports[j].SoldAt) < 0 })
+	//sort.Slice(reports, func(i, j int) bool { return strings.Compare(reports[i].SoldAt, reports[j].SoldAt) < 0 })
 
 	c.Response().Header().Set("Content-Type", `text/csv; charset=UTF-8`)
 	c.Response().Header().Set("Content-Disposition", `attachment; filename="report.csv"`)
