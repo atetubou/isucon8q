@@ -372,9 +372,11 @@ func getIndexHandler(c echo.Context) error {
 }
 
 var allSheets []Sheet
+var sheetTable map[int64]Sheet
 
 func mainInit() {
 	allSheets = []Sheet{}
+	sheetTable = make(map[int64]Sheet)
 	rows, err := db.Query("SELECT * FROM sheets ORDER BY `rank`, num")
 	if err != nil {
 		log.Fatal("db.Query", err)
@@ -385,6 +387,7 @@ func mainInit() {
 			log.Fatal("rows.Scane:", err)
 		}
 		allSheets = append(allSheets, sheet)
+		sheetTable[sheet.ID] = sheet
 	}
 	log.Print(len(allSheets))
 
@@ -1012,10 +1015,8 @@ func getAdminReportsHandler(c echo.Context) error {
 	defer adminLock.Unlock()
 	rows, err := db.Query(`
 		select  r.*, s.rank as sheet_rank, 
-				s.num as sheet_num, s.price as sheet_price, 
 				e.id as event_id, e.price as event_price
 			from reservations r 
-			inner join sheets s on s.id = r.sheet_id
 			inner join events e on e.id = r.event_id 
 			order by reserved_at asc for update`)
 	if err != nil {
@@ -1032,11 +1033,11 @@ func getAdminReportsHandler(c echo.Context) error {
 		if err := rows.Scan(&reservation.ID, &reservation.EventID,
 			&reservation.SheetID, &reservation.UserID,
 			&reservation.ReservedAt, &reservation.CanceledAt,
-			&sheet.Rank, &sheet.Num, &sheet.Price,
 			&event.ID, &event.Price); err != nil {
 			log.Print("scan (/admin/api/reports/): ", err)
 			return err
 		}
+		sheet = sheetTable[reservation.SheetID]
 		report := Report{
 			ReservationID: reservation.ID,
 			EventID:       event.ID,
