@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"database/sql"
 	"encoding/json"
 	"errors"
@@ -1120,19 +1119,18 @@ type Report struct {
 func renderReportCSV(c echo.Context, reports []Report) error {
 	sort.Slice(reports, func(i, j int) bool { return strings.Compare(reports[i].SoldAt, reports[j].SoldAt) < 0 })
 
-	body := bytes.NewBufferString("reservation_id,event_id,rank,num,price,user_id,sold_at,canceled_at\n")
-	for _, v := range reports {
-		body.WriteString(fmt.Sprintf("%d,%d,%s,%d,%d,%d,%s,%s\n",
-			v.ReservationID, v.EventID, v.Rank, v.Num, v.Price, v.UserID, v.SoldAt, v.CanceledAt))
-	}
-
 	c.Response().Header().Set("Content-Type", `text/csv; charset=UTF-8`)
 	c.Response().Header().Set("Content-Disposition", `attachment; filename="report.csv"`)
-	_, err := io.Copy(c.Response(), body)
-	if err != nil {
-		log.Print("render report csv:", err)
+	for _, v := range reports {
+		_, err := fmt.Fprintf(c.Response(), "%d,%d,%s,%d,%d,%d,%s,%s\n",
+			v.ReservationID, v.EventID, v.Rank, v.Num, v.Price, v.UserID, v.SoldAt, v.CanceledAt)
+		if err != nil {
+			log.Print("render report csv:", err)
+			return err
+		}
 	}
-	return err
+
+	return nil
 }
 
 func resError(c echo.Context, e string, status int) error {
