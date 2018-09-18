@@ -265,7 +265,7 @@ func getEvents(all bool) ([]*Event, error) {
 		events = append(events, &event)
 	}
 	for i, v := range events {
-		event, err := getEvent(v.ID, -1)
+		event, err := getEvent(v.ID, -1, false)
 		if err != nil {
 			return nil, err
 		}
@@ -277,7 +277,7 @@ func getEvents(all bool) ([]*Event, error) {
 	return events, nil
 }
 
-func getEvent(eventID, loginUserID int64) (*Event, error) {
+func getEvent(eventID, loginUserID int64, detailed bool) (*Event, error) {
 	var event Event
 	if err := db.QueryRow("SELECT * FROM events WHERE id = ?", eventID).Scan(&event.ID, &event.Title, &event.PublicFg, &event.ClosedFg, &event.Price); err != nil {
 		return nil, err
@@ -306,7 +306,9 @@ func getEvent(eventID, loginUserID int64) (*Event, error) {
 			rankSheet.Remains++
 		}
 
-		rankSheet.Detail = append(rankSheet.Detail, &sheet)
+		if detailed {
+			rankSheet.Detail = append(rankSheet.Detail, &sheet)
+		}
 	}
 
 	return &event, nil
@@ -514,7 +516,7 @@ func getUserHandler(c echo.Context) error {
 			return err
 		}
 
-		event, err := getEvent(reservation.EventID, -1)
+		event, err := getEvent(reservation.EventID, -1, true)
 		if err != nil {
 			return err
 		}
@@ -554,7 +556,7 @@ func getUserHandler(c echo.Context) error {
 		if err := rows.Scan(&eventID); err != nil {
 			return err
 		}
-		event, err := getEvent(eventID, -1)
+		event, err := getEvent(eventID, -1, false)
 		if err != nil {
 			return err
 		}
@@ -634,7 +636,7 @@ func getEventHandler(c echo.Context) error {
 		loginUserID = user.ID
 	}
 
-	event, err := getEvent(eventID, loginUserID)
+	event, err := getEvent(eventID, loginUserID, true)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return resError(c, "not_found", 404)
@@ -664,7 +666,7 @@ func postReserveHandler(c echo.Context) error {
 		return err
 	}
 
-	event, err := getEvent(eventID, user.ID)
+	event, err := getEvent(eventID, user.ID, false)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return resError(c, "invalid_event", 404)
@@ -746,7 +748,7 @@ func deleteReservationHandler(c echo.Context) error {
 		return err
 	}
 
-	event, err := getEvent(eventID, user.ID)
+	event, err := getEvent(eventID, user.ID, false)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return resError(c, "invalid_event", 404)
@@ -892,7 +894,7 @@ func postAdminEventsHandler(c echo.Context) error {
 		return err
 	}
 
-	event, err := getEvent(eventID, -1)
+	event, err := getEvent(eventID, -1, true)
 	if err != nil {
 		return err
 	}
@@ -904,7 +906,7 @@ func getAdminEventHandler(c echo.Context) error {
 	if err != nil {
 		return resError(c, "not_found", 404)
 	}
-	event, err := getEvent(eventID, -1)
+	event, err := getEvent(eventID, -1, true)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return resError(c, "not_found", 404)
@@ -929,7 +931,7 @@ func postAdminEditEventHandler(c echo.Context) error {
 		params.Public = false
 	}
 
-	event, err := getEvent(eventID, -1)
+	event, err := getEvent(eventID, -1, false)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return resError(c, "not_found", 404)
@@ -955,7 +957,7 @@ func postAdminEditEventHandler(c echo.Context) error {
 		return err
 	}
 
-	e, err := getEvent(eventID, -1)
+	e, err := getEvent(eventID, -1, true)
 	if err != nil {
 		return err
 	}
@@ -970,7 +972,7 @@ func getAdminReportsEventHandler(c echo.Context) error {
 		return resError(c, "not_found", 404)
 	}
 
-	event, err := getEvent(eventID, -1)
+	event, err := getEvent(eventID, -1, false)
 	if err != nil {
 		return err
 	}
@@ -1011,12 +1013,12 @@ func getAdminReportsEventHandler(c echo.Context) error {
 func getAdminReportsHandler(c echo.Context) error {
 	time.Sleep(10 * time.Second)
 	adminLock.Lock()
-	defer adminLock.Unlock()
 	rows, err := db.Query(`
 		select  r.*, e.id as event_id, e.price as event_price
 			from reservations r 
 			inner join events e on e.id = r.event_id 
-			order by reserved_at asc for update`)
+			order by reserved_at asc`)
+	adminLock.Unlock()
 	if err != nil {
 		log.Print("query (/admin/api/reports/): ", err)
 		return err
