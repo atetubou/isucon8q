@@ -976,7 +976,6 @@ func getAdminReportsEventHandler(c echo.Context) error {
 	if err != nil {
 		return err
 	}
-	time.Sleep(10 * time.Second)
 
 	adminLock.Lock()
 	defer adminLock.Unlock()
@@ -1012,6 +1011,7 @@ func getAdminReportsEventHandler(c echo.Context) error {
 }
 
 func getAdminReportsHandler(c echo.Context) error {
+	time.Sleep(10 * time.Second)
 	adminLock.Lock()
 	defer adminLock.Unlock()
 	rows, err := db.Query(`
