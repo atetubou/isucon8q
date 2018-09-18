@@ -1014,8 +1014,7 @@ func getAdminReportsHandler(c echo.Context) error {
 	adminLock.Lock()
 	defer adminLock.Unlock()
 	rows, err := db.Query(`
-		select  r.*, s.rank as sheet_rank, 
-				e.id as event_id, e.price as event_price
+		select  r.*, e.id as event_id, e.price as event_price
 			from reservations r 
 			inner join events e on e.id = r.event_id 
 			order by reserved_at asc for update`)
