@@ -969,7 +969,10 @@ func getAdminReportsEventHandler(c echo.Context) error {
 		return err
 	}
 
-	rows, err := db.Query("SELECT r.*, s.rank AS sheet_rank, s.num AS sheet_num, s.price AS sheet_price, e.price AS event_price FROM reservations r INNER JOIN sheets s ON s.id = r.sheet_id INNER JOIN events e ON e.id = r.event_id WHERE r.event_id = ? ORDER BY reserved_at ASC FOR UPDATE", event.ID)
+	tx, err := db.Begin()
+	defer tx.Rollback()
+
+	rows, err := tx.Query("SELECT r.*, s.rank AS sheet_rank, s.num AS sheet_num, s.price AS sheet_price, e.price AS event_price FROM reservations r INNER JOIN sheets s ON s.id = r.sheet_id INNER JOIN events e ON e.id = r.event_id WHERE r.event_id = ? ORDER BY reserved_at ASC FOR UPDATE", event.ID)
 	if err != nil {
 		return err
 	}
@@ -1000,7 +1003,9 @@ func getAdminReportsEventHandler(c echo.Context) error {
 }
 
 func getAdminReportsHandler(c echo.Context) error {
-	rows, err := db.Query("select r.*, s.rank as sheet_rank, s.num as sheet_num, s.price as sheet_price, e.id as event_id, e.price as event_price from reservations r inner join sheets s on s.id = r.sheet_id inner join events e on e.id = r.event_id order by reserved_at asc for update")
+	tx, err := db.Begin()
+	defer tx.Rollback()
+	rows, err := tx.Query("select r.*, s.rank as sheet_rank, s.num as sheet_num, s.price as sheet_price, e.id as event_id, e.price as event_price from reservations r inner join sheets s on s.id = r.sheet_id inner join events e on e.id = r.event_id order by reserved_at asc for update")
 	if err != nil {
 		log.Print("query (/admin/api/reports/): ", err)
 		return err
