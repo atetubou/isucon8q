@@ -290,23 +290,24 @@ func getEvent(eventID, loginUserID int64, detailed bool) (*Event, error) {
 	}
 
 	for _, sheet := range allSheets {
-		sheet := sheet
 		var rankSheet *Sheets = event.Sheets[sheet.Rank]
 		rankSheet.Price = event.Price + sheet.Price
 		event.Total++
 		rankSheet.Total++
 
 		reservation := eventSheetCache.Get(event.ID, sheet.ID)
-		if reservation != nil {
-			sheet.Mine = reservation.UserID == loginUserID
-			sheet.Reserved = true
-			sheet.ReservedAtUnix = reservation.ReservedAt.Unix()
-		} else {
+		if reservation == nil {
 			event.Remains++
 			rankSheet.Remains++
 		}
 
 		if detailed {
+			sheet := sheet
+			if reservation != nil {
+				sheet.Mine = reservation.UserID == loginUserID
+				sheet.Reserved = true
+				sheet.ReservedAtUnix = reservation.ReservedAt.Unix()
+			}
 			rankSheet.Detail = append(rankSheet.Detail, &sheet)
 		}
 	}
