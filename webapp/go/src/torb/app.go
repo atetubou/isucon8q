@@ -799,7 +799,7 @@ func deleteReservationHandler(c echo.Context) error {
 
 		var reservation Reservation
 		if err := db.QueryRow(`
-			SELECT id, event_id, sheet_id, sheet_id, user_id, reserved_at, canceled_at
+			SELECT id, event_id, sheet_id, user_id, reserved_at, canceled_at
 			FROM reservations 
 			WHERE event_id = ? AND sheet_id = ? AND canceled_at IS NULL 
 			GROUP BY event_id HAVING reserved_at = MIN(reserved_at)
