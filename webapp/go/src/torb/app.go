@@ -1065,12 +1065,8 @@ func getAdminReportsEventHandler(c echo.Context) error {
 	defer adminLock.Unlock()
 
 	rows, err := db.Query(`
-		SELECT r.id, r.event_id, r.sheet_id, r.user_id, r.reserved_at, r.canceled_at, 
-			   s.rank AS sheet_rank, s.num AS sheet_num, s.price AS sheet_price, 
-			   e.price AS event_price 
+		SELECT r.id, r.event_id, r.sheet_id, r.user_id, r.reserved_at, r.canceled_at
 		FROM reservations r 
-		INNER JOIN sheets s ON s.id = r.sheet_id 
-		INNER JOIN events e ON e.id = r.event_id 
 		WHERE r.event_id = ? 
 		ORDER BY reserved_at ASC`, event.ID)
 	if err != nil {
@@ -1078,28 +1074,44 @@ func getAdminReportsEventHandler(c echo.Context) error {
 	}
 	defer rows.Close()
 
-	var reports []Report
+	c.Response().Header().Set("Content-Type", `text/csv; charset=UTF-8`)
+	c.Response().Header().Set("Content-Disposition", `attachment; filename="report.csv"`)
+	_, err = fmt.Fprintf(c.Response(), "reservation_id,event_id,rank,num,price,user_id,sold_at,canceled_at\n")
+	if err != nil {
+		log.Print("render report csv:", err)
+		return err
+	}
+
 	for rows.Next() {
 		var reservation Reservation
 		var sheet Sheet
-		if err := rows.Scan(&reservation.ID, &reservation.EventID, &reservation.SheetID, &reservation.UserID, &reservation.ReservedAt, &reservation.CanceledAt, &sheet.Rank, &sheet.Num, &sheet.Price, &event.Price); err != nil {
+		if err := rows.Scan(&reservation.ID, &reservation.EventID, &reservation.SheetID, &reservation.UserID, &reservation.ReservedAt, &reservation.CanceledAt); err != nil {
 			return err
 		}
+		sheet = sheetTable[reservation.SheetID]
+		eventInfo := eventPriceTitleCache.Get(reservation.EventID)
+
 		report := Report{
 			ReservationID: reservation.ID,
-			EventID:       event.ID,
+			EventID:       reservation.EventID,
 			Rank:          sheet.Rank,
 			Num:           sheet.Num,
 			UserID:        reservation.UserID,
 			SoldAt:        reservation.ReservedAt.Format("2006-01-02T15:04:05.000000Z"),
-			Price:         event.Price + sheet.Price,
+			Price:         eventInfo.Price + sheet.Price,
 		}
 		if reservation.CanceledAt != nil {
 			report.CanceledAt = reservation.CanceledAt.Format("2006-01-02T15:04:05.000000Z")
 		}
-		reports = append(reports, report)
+		_, err = fmt.Fprintf(c.Response(), "%d,%d,%s,%d,%d,%d,%s,%s\n",
+			report.ReservationID, report.EventID, report.Rank,
+			report.Num, report.Price, report.UserID, report.SoldAt, report.CanceledAt)
+		if err != nil {
+			log.Print("render report csv:", err)
+			return err
+		}
 	}
-	return renderReportCSV(c, reports)
+	return nil
 }
 
 func getAdminReportsHandler(c echo.Context) error {
