@@ -503,7 +503,7 @@ func getUserHandler(c echo.Context) error {
 		return resError(c, "forbidden", 403)
 	}
 
-	rows, err := db.Query("SELECT r.* FROM reservations r WHERE r.user_id = ? ORDER BY r.update_at DESC LIMIT 5", user.ID)
+	rows, err := db.Query("SELECT r.* FROM reservations r WHERE r.user_id = ? ORDER BY r.updated_at DESC LIMIT 5", user.ID)
 	if err != nil {
 		return err
 	}
