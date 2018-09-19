@@ -99,6 +99,15 @@ type EventSheetReservationCache struct {
 	cache []map[int64]EventSheetReservation
 }
 
+type EventPriceTitle struct {
+	Title string
+	Price int64
+}
+type EventPriceTitleCache struct {
+	mu    sync.RWMutex
+	cache map[int64]EventPriceTitle
+}
+
 func newEventSheetCache() EventSheetReservationCache {
 	cache := make([]map[int64]EventSheetReservation, 1010)
 	for i := 0; i < 1010; i++ {
@@ -106,6 +115,13 @@ func newEventSheetCache() EventSheetReservationCache {
 	}
 	return EventSheetReservationCache{
 		mu:    make([]sync.RWMutex, 1010),
+		cache: cache,
+	}
+}
+
+func newEventPriceTitleCache() EventPriceTitleCache {
+	cache := make(map[int64]EventPriceTitle)
+	return EventPriceTitleCache{
 		cache: cache,
 	}
 }
@@ -134,8 +150,25 @@ func (c *EventSheetReservationCache) Delete(eventId int64, sheetId int64) {
 	delete(c.cache[sheetId], eventId)
 }
 
+func (c *EventPriceTitleCache) Get(eventId int64) *EventPriceTitle {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	if v, ok := c.cache[eventId]; ok {
+		return &v
+	}
+	return nil
+}
+
+func (c *EventPriceTitleCache) Set(event_id int64, title string, price int64) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.cache[event_id] = EventPriceTitle{title, price}
+
+}
+
 var eventSheetCache EventSheetReservationCache
 var adminLock sync.RWMutex
+var eventPriceTitleCache EventPriceTitleCache
 
 func sessUserID(c echo.Context) int64 {
 	sess, _ := session.Get("session", c)
@@ -417,8 +450,29 @@ func mainInit() {
 
 	if err := rows.Close(); err != nil {
 		log.Fatal(err)
+
+	}
+	eventPriceTitleCache = newEventPriceTitleCache()
+
+	rows, err = db.Query(`
+		SELECT id, title, price
+		FROM events`)
+	if err != nil {
+		log.Fatal(err)
 	}
 
+	for rows.Next() {
+		var event Event
+		if err := rows.Scan(&event.ID, &event.Title, &event.Price); err != nil {
+			log.Fatal(err)
+		}
+		eventPriceTitleCache.Set(event.ID, event.Title, event.Price)
+	}
+
+	if err := rows.Close(); err != nil {
+		log.Fatal(err)
+
+	}
 }
 
 func getInitializeHandler(c echo.Context) error {
@@ -899,7 +953,7 @@ func postAdminEventsHandler(c echo.Context) error {
 	var params struct {
 		Title  string `json:"title"`
 		Public bool   `json:"public"`
-		Price  int    `json:"price"`
+		Price  int64  `json:"price"`
 	}
 	c.Bind(&params)
 
@@ -918,6 +972,7 @@ func postAdminEventsHandler(c echo.Context) error {
 		tx.Rollback()
 		return err
 	}
+	eventPriceTitleCache.Set(eventID, params.Title, params.Price)
 	if err := tx.Commit(); err != nil {
 		return err
 	}
@@ -1050,10 +1105,8 @@ func getAdminReportsHandler(c echo.Context) error {
 	time.Sleep(10 * time.Second)
 	adminLock.Lock()
 	rows, err := db.Query(`
-		select  r.id, r.event_id, r.sheet_id, r.user_id, r.reserved_at, r.canceled_at, 
-			e.id as event_id, e.price as event_price
+		select  r.id, r.event_id, r.sheet_id, r.user_id, r.reserved_at, r.canceled_at
 		from reservations r 
-		inner join events e on e.id = r.event_id 
 		order by reserved_at asc`)
 	adminLock.Unlock()
 	if err != nil {
@@ -1066,23 +1119,25 @@ func getAdminReportsHandler(c echo.Context) error {
 	for rows.Next() {
 		var reservation Reservation
 		var sheet Sheet
-		var event Event
 		if err := rows.Scan(&reservation.ID, &reservation.EventID,
 			&reservation.SheetID, &reservation.UserID,
-			&reservation.ReservedAt, &reservation.CanceledAt,
-			&event.ID, &event.Price); err != nil {
+			&reservation.ReservedAt, &reservation.CanceledAt); err != nil {
 			log.Print("scan (/admin/api/reports/): ", err)
 			return err
+		}
+		eventTitlePrice := eventPriceTitleCache.Get(reservation.EventID)
+		if eventTitlePrice == nil {
+			return errors.New("eventPriceTitleCache not found")
 		}
 		sheet = sheetTable[reservation.SheetID]
 		report := Report{
 			ReservationID: reservation.ID,
-			EventID:       event.ID,
+			EventID:       reservation.EventID,
 			Rank:          sheet.Rank,
 			Num:           sheet.Num,
 			UserID:        reservation.UserID,
 			SoldAt:        reservation.ReservedAt.Format("2006-01-02T15:04:05.000000Z"),
-			Price:         event.Price + sheet.Price,
+			Price:         eventTitlePrice.Price + sheet.Price,
 		}
 		if reservation.CanceledAt != nil {
 			report.CanceledAt = reservation.CanceledAt.Format("2006-01-02T15:04:05.000000Z")
