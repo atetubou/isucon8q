@@ -1103,7 +1103,7 @@ func getAdminReportsEventHandler(c echo.Context) error {
 }
 
 func getAdminReportsHandler(c echo.Context) error {
-	//time.Sleep(10 * time.Second)
+	time.Sleep(10 * time.Second)
 	adminLock.Lock()
 	rows, err := db.Query(`
 		select  r.id, r.event_id, r.sheet_id, r.user_id, r.reserved_at, r.canceled_at
