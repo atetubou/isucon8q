@@ -1115,7 +1115,9 @@ func getAdminReportsHandler(c echo.Context) error {
 	}
 	defer rows.Close()
 
-	var reports []Report
+	c.Response().Header().Set("Content-Type", `text/csv; charset=UTF-8`)
+	c.Response().Header().Set("Content-Disposition", `attachment; filename="report.csv"`)
+
 	for rows.Next() {
 		var reservation Reservation
 		var sheet Sheet
@@ -1142,9 +1144,15 @@ func getAdminReportsHandler(c echo.Context) error {
 		if reservation.CanceledAt != nil {
 			report.CanceledAt = reservation.CanceledAt.Format("2006-01-02T15:04:05.000000Z")
 		}
-		reports = append(reports, report)
+		_, err = fmt.Fprintf(c.Response(), "%d,%d,%s,%d,%d,%d,%s,%s\n",
+			report.ReservationID, report.EventID, report.Rank,
+			report.Num, report.Price, report.UserID, report.SoldAt, report.CanceledAt)
+		if err != nil {
+			log.Print("render report csv:", err)
+			return err
+		}
 	}
-	return renderReportCSV(c, reports)
+	return nil
 }
 
 var db *sql.DB
