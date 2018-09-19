@@ -397,7 +397,9 @@ func mainInit() {
 	}
 
 	eventSheetCache = newEventSheetCache()
-	rows, err = db.Query("SELECT * FROM reservations WHERE canceled_at IS NULL")
+	rows, err = db.Query(`
+		SELECT id, event_id, sheet_id, user_id, reserved_at, canceled_at
+		FROM reservations WHERE canceled_at IS NULL`)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -503,7 +505,10 @@ func getUserHandler(c echo.Context) error {
 		return resError(c, "forbidden", 403)
 	}
 
-	rows, err := db.Query("SELECT r.* FROM reservations r WHERE r.user_id = ? ORDER BY r.updated_at DESC LIMIT 5", user.ID)
+	rows, err := db.Query(`
+		SELECT r.id, r.event_id, r.sheet_id, r.user_id, r.reserved_at, r.canceled_at
+		FROM reservations r WHERE r.user_id = ? ORDER BY r.updated_at DESC LIMIT 5
+		`, user.ID)
 	if err != nil {
 		return err
 	}
@@ -793,7 +798,14 @@ func deleteReservationHandler(c echo.Context) error {
 	for {
 
 		var reservation Reservation
-		if err := db.QueryRow("SELECT * FROM reservations WHERE event_id = ? AND sheet_id = ? AND canceled_at IS NULL GROUP BY event_id HAVING reserved_at = MIN(reserved_at) FOR UPDATE", event.ID, sheet.ID).Scan(&reservation.ID, &reservation.EventID, &reservation.SheetID, &reservation.UserID, &reservation.ReservedAt, &reservation.CanceledAt); err != nil {
+		if err := db.QueryRow(`
+			SELECT id, event_id, sheet_id, sheet_id, user_id, reserved_at, canceled_at
+			FROM reservations 
+			WHERE event_id = ? AND sheet_id = ? AND canceled_at IS NULL 
+			GROUP BY event_id HAVING reserved_at = MIN(reserved_at)
+			`, event.ID, sheet.ID).Scan(&reservation.ID, &reservation.EventID,
+			&reservation.SheetID, &reservation.UserID,
+			&reservation.ReservedAt, &reservation.CanceledAt); err != nil {
 			if err == sql.ErrNoRows {
 				return resError(c, "not_reserved", 400)
 			}
@@ -996,7 +1008,15 @@ func getAdminReportsEventHandler(c echo.Context) error {
 	adminLock.Lock()
 	defer adminLock.Unlock()
 
-	rows, err := db.Query("SELECT r.*, s.rank AS sheet_rank, s.num AS sheet_num, s.price AS sheet_price, e.price AS event_price FROM reservations r INNER JOIN sheets s ON s.id = r.sheet_id INNER JOIN events e ON e.id = r.event_id WHERE r.event_id = ? ORDER BY reserved_at ASC", event.ID)
+	rows, err := db.Query(`
+		SELECT r.id, r.event_id, r.sheet_id, r.user_id, r.reserved_at, r.canceled_at, 
+			   s.rank AS sheet_rank, s.num AS sheet_num, s.price AS sheet_price, 
+			   e.price AS event_price 
+		FROM reservations r 
+		INNER JOIN sheets s ON s.id = r.sheet_id 
+		INNER JOIN events e ON e.id = r.event_id 
+		WHERE r.event_id = ? 
+		ORDER BY reserved_at ASC`, event.ID)
 	if err != nil {
 		return err
 	}
@@ -1030,10 +1050,11 @@ func getAdminReportsHandler(c echo.Context) error {
 	time.Sleep(10 * time.Second)
 	adminLock.Lock()
 	rows, err := db.Query(`
-		select  r.*, e.id as event_id, e.price as event_price
-			from reservations r 
-			inner join events e on e.id = r.event_id 
-			order by reserved_at asc`)
+		select  r.id, r.event_id, r.sheet_id, r.user_id, r.reserved_at, r.canceled_at, 
+			e.id as event_id, e.price as event_price
+		from reservations r 
+		inner join events e on e.id = r.event_id 
+		order by reserved_at asc`)
 	adminLock.Unlock()
 	if err != nil {
 		log.Print("query (/admin/api/reports/): ", err)
