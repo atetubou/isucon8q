@@ -1054,6 +1054,7 @@ func getAdminReportsEventHandler(c echo.Context) error {
 	if err != nil {
 		return resError(c, "not_found", 404)
 	}
+	time.Sleep(300 * time.Millisecond)
 
 	event, err := getEvent(eventID, -1, false)
 	if err != nil {
