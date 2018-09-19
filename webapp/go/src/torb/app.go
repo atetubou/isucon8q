@@ -549,8 +549,8 @@ func getUserHandler(c echo.Context) error {
 			ON s.id = r.sheet_id 
 		INNER JOIN events e 
 			ON e.id = r.event_id 
-		WHERE r.user_id = ? AND r.canceled_at IS NULL`
-		, user.ID).Scan(&totalPrice); err != nil {
+		WHERE r.user_id = ? AND r.canceled_at IS NULL
+		`, user.ID).Scan(&totalPrice); err != nil {
 		return err
 	}
 
