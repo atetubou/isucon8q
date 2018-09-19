@@ -1108,7 +1108,7 @@ func getAdminReportsHandler(c echo.Context) error {
 		select  r.id, r.event_id, r.sheet_id, r.user_id, r.reserved_at, r.canceled_at
 		from reservations r 
 		order by reserved_at asc`)
-	adminLock.Unlock()
+	defer adminLock.Unlock()
 	if err != nil {
 		log.Print("query (/admin/api/reports/): ", err)
 		return err
