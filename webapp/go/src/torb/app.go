@@ -904,7 +904,6 @@ func getAdminHandler(c echo.Context) error {
 			log.Printf("getEvents: %v", err)
 			return err
 		}
-		time.Sleep(100 * time.Millisecond)
 	}
 	return c.Render(200, "admin.tmpl", echo.Map{
 		"events":        events,
