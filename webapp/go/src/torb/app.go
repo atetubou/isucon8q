@@ -1117,16 +1117,10 @@ func getAdminReportsEventHandler(c echo.Context) error {
 var prevAdminReportCost time.Duration = 0
 
 func getAdminReportsHandler(c echo.Context) error {
-	if prevAdminReportCost >= time.Second {
-		time.Sleep(10 * time.Second)
-	}
-	startTime := time.Now()
-	adminLock.Lock()
 	rows, err := db.Query(`
 		select  r.id, r.event_id, r.sheet_id, r.user_id, r.reserved_at, r.canceled_at
 		from reservations r 
 		order by reserved_at asc`)
-	defer adminLock.Unlock()
 	if err != nil {
 		log.Print("query (/admin/api/reports/): ", err)
 		return err
@@ -1175,8 +1169,6 @@ func getAdminReportsHandler(c echo.Context) error {
 			return err
 		}
 	}
-	endTime := time.Now()
-	prevAdminReportCost = endTime.Sub(startTime)
 	return nil
 }
 
