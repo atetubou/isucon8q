@@ -400,9 +400,11 @@ func getEvent(eventID, loginUserID int64, detailed bool) (*Event, error) {
 	for _, rank := range []string{"S", "A", "B", "C"} {
 		v := eventSheetCountCache.Get(eventID, rank)
 		t := event.Sheets[rank].Total
-		event.Sheets[rank].Remains = t - v
+		if !detailed {
+			event.Sheets[rank].Remains = t - v
+			event.Remains += t - v
+		}
 		event.Total += t
-		event.Remains += t - v
 	}
 
 	if detailed {
@@ -415,6 +417,9 @@ func getEvent(eventID, loginUserID int64, detailed bool) (*Event, error) {
 				sheet.Mine = reservation.UserID == loginUserID
 				sheet.Reserved = true
 				sheet.ReservedAtUnix = reservation.ReservedAt.Unix()
+				rankSheet.Remains--
+			} else {
+				event.Remains++
 			}
 			rankSheet.Detail = append(rankSheet.Detail, &sheet)
 		}
