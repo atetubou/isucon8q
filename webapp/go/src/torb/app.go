@@ -757,8 +757,8 @@ func postReserveHandler(c echo.Context) error {
 
 	var sheet Sheet
 	var reservationID int64
-	adminLock.RLock()
-	defer adminLock.RUnlock()
+	//adminLock.RLock()
+	//defer adminLock.RUnlock()
 
 	for {
 		if err := db.QueryRow("SELECT * FROM sheets WHERE id NOT IN (SELECT sheet_id FROM reservations WHERE event_id = ? AND canceled_at IS NULL FOR UPDATE) AND `rank` = ? ORDER BY RAND() LIMIT 1", event.ID, params.Rank).Scan(&sheet.ID, &sheet.Rank, &sheet.Num, &sheet.Price); err != nil {
