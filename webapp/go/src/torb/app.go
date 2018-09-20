@@ -760,8 +760,8 @@ func postReserveHandler(c echo.Context) error {
 	//adminLock.RLock()
 	//defer adminLock.RUnlock()
 	retryCount := 10
-	retry := 0;
-	for retry < retryCount; retry++ {
+	retry := 0
+	for ; retry < retryCount; retry++ {
 		if err := db.QueryRow("SELECT * FROM sheets WHERE id NOT IN (SELECT sheet_id FROM reservations WHERE event_id = ? AND canceled_at IS NULL) AND `rank` = ? ORDER BY RAND() LIMIT 1", event.ID, params.Rank).Scan(&sheet.ID, &sheet.Rank, &sheet.Num, &sheet.Price); err != nil {
 			if err == sql.ErrNoRows {
 				return resError(c, "sold_out", 409)
