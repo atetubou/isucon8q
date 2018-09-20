@@ -759,9 +759,10 @@ func postReserveHandler(c echo.Context) error {
 	var reservationID int64
 	//adminLock.RLock()
 	//defer adminLock.RUnlock()
-
-	for {
-		if err := db.QueryRow("SELECT * FROM sheets WHERE id NOT IN (SELECT sheet_id FROM reservations WHERE event_id = ? AND canceled_at IS NULL FOR UPDATE) AND `rank` = ? ORDER BY RAND() LIMIT 1", event.ID, params.Rank).Scan(&sheet.ID, &sheet.Rank, &sheet.Num, &sheet.Price); err != nil {
+	retryCount := 10
+	retry := 0;
+	for retry < retryCount; retry++ {
+		if err := db.QueryRow("SELECT * FROM sheets WHERE id NOT IN (SELECT sheet_id FROM reservations WHERE event_id = ? AND canceled_at IS NULL) AND `rank` = ? ORDER BY RAND() LIMIT 1", event.ID, params.Rank).Scan(&sheet.ID, &sheet.Rank, &sheet.Num, &sheet.Price); err != nil {
 			if err == sql.ErrNoRows {
 				return resError(c, "sold_out", 409)
 			}
@@ -800,6 +801,9 @@ func postReserveHandler(c echo.Context) error {
 		}
 		sheetMu[sheet.ID].Unlock()
 		break
+	}
+	if retry >= retryCount {
+		return resError(c, "try again", 409)
 	}
 	return c.JSON(202, echo.Map{
 		"id":         reservationID,
