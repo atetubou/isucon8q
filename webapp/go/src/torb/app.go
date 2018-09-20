@@ -108,6 +108,18 @@ type EventPriceTitleCache struct {
 	cache map[int64]EventPriceTitle
 }
 
+type EventSheetCount struct {
+	S int
+	A int
+	B int
+	C int
+}
+
+type EventSheetCountCache struct {
+	mu    sync.RWMutex
+	cache map[int64]*EventSheetCount
+}
+
 func newEventSheetCache() EventSheetReservationCache {
 	cache := make([]map[int64]EventSheetReservation, 1010)
 	for i := 0; i < 1010; i++ {
@@ -123,6 +135,12 @@ func newEventPriceTitleCache() EventPriceTitleCache {
 	cache := make(map[int64]EventPriceTitle)
 	return EventPriceTitleCache{
 		cache: cache,
+	}
+}
+
+func newEventSheetCountCache() EventSheetCountCache {
+	return EventSheetCountCache{
+		cache: make(map[int64]*EventSheetCount),
 	}
 }
 
@@ -150,6 +168,60 @@ func (c *EventSheetReservationCache) Delete(eventId int64, sheetId int64) {
 	delete(c.cache[sheetId], eventId)
 }
 
+func (c *EventSheetCountCache) AddEvent(eventId int64) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.cache[eventId] = &EventSheetCount{
+		S: 0,
+		A: 0,
+		B: 0,
+		C: 0,
+	}
+}
+
+func (c *EventSheetCountCache) Get(eventId int64, rank string) int {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	if rank == "S" {
+		return c.cache[eventId].S
+	} else if rank == "A" {
+		return c.cache[eventId].A
+	} else if rank == "B" {
+		return c.cache[eventId].B
+	} else if rank == "C" {
+		return c.cache[eventId].C
+	}
+	return 0
+}
+
+func (c *EventSheetCountCache) Incr(eventId int64, rank string) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if rank == "S" {
+		c.cache[eventId].S++
+	} else if rank == "A" {
+		c.cache[eventId].A++
+	} else if rank == "B" {
+		c.cache[eventId].B++
+	} else if rank == "C" {
+		c.cache[eventId].C++
+	}
+}
+
+func (c *EventSheetCountCache) Decr(eventId int64, rank string) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if rank == "S" {
+		c.cache[eventId].S--
+	} else if rank == "A" {
+		c.cache[eventId].A--
+	} else if rank == "B" {
+		c.cache[eventId].B--
+	} else if rank == "C" {
+		c.cache[eventId].C--
+	}
+}
+
 func (c *EventPriceTitleCache) Get(eventId int64) *EventPriceTitle {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
@@ -169,6 +241,7 @@ func (c *EventPriceTitleCache) Set(event_id int64, title string, price int64) {
 var eventSheetCache EventSheetReservationCache
 var adminLock sync.RWMutex
 var eventPriceTitleCache EventPriceTitleCache
+var eventSheetCountCache EventSheetCountCache
 
 func sessUserID(c echo.Context) int64 {
 	sess, _ := session.Get("session", c)
@@ -318,25 +391,25 @@ func getEvent(eventID, loginUserID int64, detailed bool) (*Event, error) {
 		return nil, err
 	}
 	event.Sheets = map[string]*Sheets{
-		"S": &Sheets{},
-		"A": &Sheets{},
-		"B": &Sheets{},
-		"C": &Sheets{},
+		"S": &Sheets{Price: event.Price + 5000, Total: 50, Remains: 50},
+		"A": &Sheets{Price: event.Price + 3000, Total: 150, Remains: 150},
+		"B": &Sheets{Price: event.Price + 1000, Total: 300, Remains: 300},
+		"C": &Sheets{Price: event.Price, Total: 500, Remains: 500},
 	}
 
-	for _, sheet := range allSheets {
-		var rankSheet *Sheets = event.Sheets[sheet.Rank]
-		rankSheet.Price = event.Price + sheet.Price
-		event.Total++
-		rankSheet.Total++
+	for _, rank := range []string{"S", "A", "B", "C"} {
+		v := eventSheetCountCache.Get(eventID, rank)
+		t := event.Sheets[rank].Total
+		event.Sheets[rank].Remains = t - v
+		event.Total += t
+		event.Remains += t - v
+	}
 
-		reservation := eventSheetCache.Get(event.ID, sheet.ID)
-		if reservation == nil {
-			event.Remains++
-			rankSheet.Remains++
-		}
-
-		if detailed {
+	if detailed {
+		for _, sheet := range allSheets {
+			var rankSheet *Sheets = event.Sheets[sheet.Rank]
+			rankSheet.Price = event.Price + sheet.Price
+			reservation := eventSheetCache.Get(event.ID, sheet.ID)
 			sheet := sheet
 			if reservation != nil {
 				sheet.Mine = reservation.UserID == loginUserID
@@ -431,29 +504,7 @@ func mainInit() {
 		log.Fatal(err)
 	}
 
-	eventSheetCache = newEventSheetCache()
-	rows, err = db.Query(`
-		SELECT id, event_id, sheet_id, user_id, reserved_at, canceled_at
-		FROM reservations WHERE canceled_at IS NULL`)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	for rows.Next() {
-		var reservation Reservation
-		if err := rows.Scan(&reservation.ID, &reservation.EventID, &reservation.SheetID, &reservation.UserID, &reservation.ReservedAt, &reservation.CanceledAt); err != nil {
-			log.Fatal(err)
-		}
-
-		if reservation.CanceledAt == nil {
-			eventSheetCache.Set(reservation.EventID, reservation.SheetID, EventSheetReservation{reservation.UserID, *(reservation.ReservedAt)})
-		}
-	}
-
-	if err := rows.Close(); err != nil {
-		log.Fatal(err)
-
-	}
+	eventSheetCountCache = newEventSheetCountCache()
 	eventPriceTitleCache = newEventPriceTitleCache()
 
 	rows, err = db.Query(`
@@ -469,12 +520,40 @@ func mainInit() {
 			log.Fatal(err)
 		}
 		eventPriceTitleCache.Set(event.ID, event.Title, event.Price)
+		eventSheetCountCache.AddEvent(event.ID)
 	}
 
 	if err := rows.Close(); err != nil {
 		log.Fatal(err)
 
 	}
+
+	eventSheetCache = newEventSheetCache()
+	rows, err = db.Query(`
+		SELECT id, event_id, sheet_id, user_id, reserved_at, canceled_at
+		FROM reservations WHERE canceled_at IS NULL`)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	for rows.Next() {
+		var reservation Reservation
+		if err := rows.Scan(&reservation.ID, &reservation.EventID, &reservation.SheetID, &reservation.UserID, &reservation.ReservedAt, &reservation.CanceledAt); err != nil {
+			log.Fatal(err)
+		}
+		sheet := sheetTable[reservation.SheetID]
+
+		if reservation.CanceledAt == nil {
+			eventSheetCache.Set(reservation.EventID, reservation.SheetID, EventSheetReservation{reservation.UserID, *(reservation.ReservedAt)})
+			eventSheetCountCache.Incr(reservation.EventID, sheet.Rank)
+		}
+	}
+
+	if err := rows.Close(); err != nil {
+		log.Fatal(err)
+
+	}
+
 }
 
 func getInitializeHandler(c echo.Context) error {
@@ -796,6 +875,7 @@ func postReserveHandler(c echo.Context) error {
 		}
 
 		eventSheetCache.Set(event.ID, sheet.ID, EventSheetReservation{user.ID, t})
+		eventSheetCountCache.Incr(event.ID, sheet.Rank)
 		if err := tx.Commit(); err != nil {
 			tx.Rollback()
 			log.Println("re-try: rollback by", err)
@@ -889,6 +969,7 @@ func deleteReservationHandler(c echo.Context) error {
 		}
 
 		eventSheetCache.Delete(reservation.EventID, reservation.SheetID)
+		eventSheetCountCache.Decr(reservation.EventID, sheet.Rank)
 		break
 	}
 
@@ -980,6 +1061,7 @@ func postAdminEventsHandler(c echo.Context) error {
 		return err
 	}
 	eventPriceTitleCache.Set(eventID, params.Title, params.Price)
+	eventSheetCountCache.AddEvent(eventID)
 	if err := tx.Commit(); err != nil {
 		return err
 	}
