@@ -722,6 +722,7 @@ func getEventHandler(c echo.Context) error {
 	} else if !event.PublicFg {
 		return resError(c, "not_found", 404)
 	}
+	time.Sleep(100 * time.Millisecond)
 	return c.JSON(200, sanitizeEvent(event))
 }
 
