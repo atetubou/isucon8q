@@ -307,6 +307,8 @@ func getEvents(all bool) ([]*Event, error) {
 		}
 		events[i] = event
 	}
+	time.Sleep(100 * time.Millisecond)
+
 	return events, nil
 }
 
